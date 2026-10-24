@@ -13,11 +13,13 @@ import {
   X,
 } from "lucide-react";
 import { demoResult, percent } from "@/lib/demo-data";
+import { detectionService } from "@/lib/detection-service";
+import ReviewerPanel from "@/components/reviewer-panel";
 import type { Verification as Feedback, Scenario } from "@/types/detection";
 import { useDemoImage } from "@/components/demo-image-provider";
 
 export default function ResultsPage() {
-  const { imageUrl, fileName } = useDemoImage();
+  const { imageUrl, fileName, result: backendResult } = useDemoImage();
 
   const [imageRatio, setImageRatio] = useState(4 / 3);
   const [scenario, setScenario] = useState<Scenario>("detected");
@@ -26,10 +28,14 @@ export default function ResultsPage() {
   const [overallFeedback, setOverallFeedback] =
     useState<Feedback | null>(null);
 
-  const result = demoResult({ url: imageUrl ?? "", name: fileName ?? "image", origin: imageUrl?.startsWith("/demo/") ? "camera-demo" : "upload" }, scenario);
-  const demoDetections = result.detections;
-  const highest = Math.max(0, ...demoDetections.map(d => d.confidence));
-  const hasDetections = scenario === "detected";
+  const connected = backendResult?.mode === "backend";
+  const result = backendResult ?? demoResult({ url: imageUrl ?? "", name: fileName ?? "image", origin: imageUrl?.startsWith("/demo/") ? "camera-demo" : "upload" }, scenario);
+  const detections = result.detections;
+  const highest = Math.max(0, ...detections.map(d => d.confidence));
+  const hasDetections = detections.length > 0;
+  const [reviewerId, setReviewerId] = useState("");
+  const [feedbackError, setFeedbackError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   function changeScenario(value: Scenario) {
     setScenario(value);
@@ -45,11 +51,18 @@ export default function ResultsPage() {
     }));
   }
 
-  function markDetection(id: string, value: Feedback) {
-    setFeedback((previous) => ({
-      ...previous,
-      [id]: value,
-    }));
+  async function markDetection(id: string | undefined, value: Feedback) {
+    if (saving) return;
+    setFeedbackError("");
+    if (connected) {
+      if (!reviewerId) { setFeedbackError("Select an existing reviewer before saving feedback."); return; }
+      setSaving(true);
+      const response = await detectionService.verify({ resultId: result.id, detectionId: id, verdict: value, reviewerId });
+      setSaving(false);
+      if (!response.ok) { setFeedbackError(response.error.message); return; }
+    }
+    if (id) setFeedback(previous => ({ ...previous, [id]: value }));
+    else setOverallFeedback(value);
   }
 
   if (!imageUrl) {
@@ -80,12 +93,10 @@ export default function ResultsPage() {
 
         <div>
           <h1 className="text-[clamp(36px,4vw,56px)] leading-none tracking-[-0.055em]">
-            Demo results preview
+            {connected ? (result.simulated ? "Backend results · Simulated model" : "Detection results") : "Demo results preview"}
           </h1>
           <p className="mt-4 text-[13px] text-[#747470]">
-            {hasDetections
-              ? "Demo scenario: two possible lizard detections."
-              : "Demo scenario: no lizard detected."}
+            {connected ? `${detections.length} detections returned by ${result.modelVersion}.` : hasDetections ? "Demo scenario: two possible lizard detections." : "Demo scenario: no lizard detected."}
           </p>
         </div>
       </div>
@@ -93,10 +104,10 @@ export default function ResultsPage() {
       {/* Clearly identify simulated results */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-[#c8c8c1] px-4 py-3">
         <p className="text-xs text-[#747470]">
-          Demo preview only. No AI model has analyzed this image.
+{connected ? (result.simulated ? `Simulated predictions from ${result.modelVersion}. FastAPI stored this image, but no trained YOLO model analyzed it.` : `Backend model: ${result.modelVersion}.`) : "Demo preview only. No AI model has analyzed this image."}
         </p>
 
-        <select
+        {!connected && <select
           aria-label="Demo scenario"
           value={scenario}
           onChange={(event) =>
@@ -106,9 +117,12 @@ export default function ResultsPage() {
         >
           <option value="detected">Two detections</option>
           <option value="none">No detection</option>
-        </select>
+        </select>}
       </div>
 
+      {connected && <ReviewerPanel reviewerId={reviewerId} onChange={setReviewerId} saving={saving} />}
+      {feedbackError && <p role="alert" className="mb-4 rounded border border-[#deded9] p-4 text-sm">{feedbackError}</p>}
+      {saving && <p role="status" className="mb-4 text-xs">Saving feedback to backend…</p>}
       <section className="grid overflow-hidden rounded-[14px] border border-[#deded9] bg-white lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Analyzed image */}
         <div className="flex items-center bg-[#efefec] p-4"><div className="relative w-full overflow-hidden" style={{ aspectRatio: imageRatio }}>
@@ -122,12 +136,12 @@ export default function ResultsPage() {
           />
 
           <span className="absolute left-4 top-4 rounded bg-[#171717] px-3 py-2 font-mono text-[9px] uppercase tracking-wide text-white">
-            {hasDetections ? "2 demo detections" : "0 demo detections"}
+            {detections.length} {result.simulated ? "simulated" : "model"} detections
           </span>
 
           {/* Illustrative boxes, not model coordinates */}
           {hasDetections &&
-            demoDetections.map((detection) => {
+            detections.map((detection, index) => {
               const isRevealed = revealed[detection.id];
 
               return (
@@ -138,14 +152,14 @@ export default function ResultsPage() {
                       ? "border-2 border-white bg-transparent"
                       : "border-white bg-[#171717]"
                   }`}
-                  aria-label={`Simulated detection ${detection.id}: ${isRevealed ? "revealed" : "hidden"}`}
+                  aria-label={`Simulated detection ${index + 1}: ${isRevealed ? "revealed" : "hidden"}`}
                   data-testid={`detection-box-${detection.id}`}
                   data-revealed={!!isRevealed}
                   style={{ left: `${detection.box.x * 100}%`, top: `${detection.box.y * 100}%`, width: `${detection.box.width * 100}%`, height: `${detection.box.height * 100}%` }}
                 >
                   {isRevealed ? (
                     <span className="absolute left-0 top-0 bg-white px-2 py-1 font-mono text-[9px] text-[#171717]">
-                      #{detection.id}<span className="hidden sm:inline"> · Lizard · {percent(detection.confidence)}</span>
+                      #{index + 1}<span className="hidden sm:inline"> · Lizard · {percent(detection.confidence)}</span>
                     </span>
                   ) : (
                     <div className="flex flex-col items-center gap-2 px-2 text-center text-white">
@@ -188,9 +202,7 @@ export default function ResultsPage() {
           </h2>
 
           <p className="mt-5 text-xs leading-5 text-[#747470]">
-            {hasDetections
-              ? "This demo illustrates two possible detections. Review each highlighted area separately."
-              : "This demo illustrates a negative detection result. You can verify the prediction below."}
+            {connected ? "Review each backend result independently. Stub predictions do not establish whether a lizard is present." : hasDetections ? "This demo illustrates two possible detections. Review each highlighted area separately." : "This demo illustrates a negative detection result. You can verify the prediction below."}
           </p>
 
           <div className="my-7 border-y border-[#e9e9e5] py-5">
@@ -216,7 +228,7 @@ export default function ResultsPage() {
 
             <p className="mt-2 text-right font-mono text-[9px] uppercase text-[#aaa]">
               {hasDetections
-                ? "Demo: high confidence"
+                ? (result.simulated ? "Simulated confidence" : "Model confidence")
                 : "Demo: no detections"}
             </p>
           </div>
@@ -231,26 +243,26 @@ export default function ResultsPage() {
               </p>
 
               <div className="mt-4 space-y-3">
-                {demoDetections.map((detection) => {
+                {detections.map((detection, index) => {
                   const isRevealed = revealed[detection.id];
                   const choice = feedback[detection.id];
 
                   return (
                     <div
                       key={detection.id}
-                      role="group" aria-label={`Detection ${detection.id}`}
+                      role="group" aria-label={`Detection ${index + 1}`}
                       className="rounded-lg border border-[#e9e9e5] p-3"
                     >
                       <div className="mb-3 flex justify-between text-[11px]">
                         <span className="text-[#747470]">
-                          Detection #{detection.id}
+                          Detection #{index + 1}
                         </span>
                         <span>{percent(detection.confidence)}</span>
                       </div>
 
                       <button
                         type="button"
-                        aria-label={`${isRevealed ? "Hide" : "Reveal"} detection ${detection.id}`}
+                        aria-label={`${isRevealed ? "Hide" : "Reveal"} detection ${index + 1}`}
                         aria-pressed={!!isRevealed}
                         onClick={() => toggleReveal(detection.id)}
                         className="flex w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-3 py-2.5 text-xs text-white"
@@ -269,6 +281,7 @@ export default function ResultsPage() {
                         <div className="mt-2 grid grid-cols-2 gap-2">
                           <button
                             type="button"
+                            disabled={saving || (connected && !reviewerId)}
                             onClick={() =>
                               markDetection(detection.id, "correct")
                             }
@@ -279,6 +292,7 @@ export default function ResultsPage() {
                           </button>
                           <button
                             type="button"
+                            disabled={saving || (connected && !reviewerId)}
                             onClick={() =>
                               markDetection(detection.id, "incorrect")
                             }
@@ -295,7 +309,7 @@ export default function ResultsPage() {
                           role="status"
                           className="mt-2 rounded-md bg-[#efefec] py-2 text-center text-[11px]"
                         >
-                          Marked {choice} (demo only)
+                          Marked {choice} {connected ? "(saved to backend)" : "(demo only)"}
                         </p>
                       )}
 
@@ -320,7 +334,7 @@ export default function ResultsPage() {
 
               {overallFeedback ? (
                 <p role="status" className="mt-4 rounded-lg bg-[#efefec] p-3 text-center text-xs">
-                  Marked {overallFeedback} (demo only)
+                  Marked {overallFeedback} {connected ? "(saved to backend)" : "(demo only)"}
                 </p>
               ) : (
                 <div className="mt-4 grid grid-cols-2 gap-2">
@@ -329,7 +343,8 @@ export default function ResultsPage() {
                       <button
                         key={value}
                         type="button"
-                        onClick={() => setOverallFeedback(value)}
+                        disabled={saving || (connected && !reviewerId)}
+                        onClick={() => markDetection(undefined, value)}
                         className="flex items-center justify-center gap-2 rounded-lg border border-[#deded9] py-3 text-xs hover:bg-[#f6f6f4]"
                       >
                         {value === "correct" ? (
@@ -366,8 +381,7 @@ export default function ResultsPage() {
       </div>
 
       <p className="mt-5 text-[11px] text-[#8a8a84]">
-        All confidence scores, detection locations, and feedback on this
-        screen are simulated. Nothing has been saved to a database.
+        {connected ? `Image and detection records were stored by FastAPI. ${result.simulated ? "Confidence scores and boxes are simulated, not trained-model predictions." : "Results come from the backend model."} Feedback is saved only when confirmed. Refreshing clears this browser view, not the backend records.` : "All confidence scores, detection locations, and feedback on this screen are simulated. Nothing has been saved to a database."}
       </p>
     </main>
   );

@@ -2,8 +2,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Camera, Info, RotateCcw, ScanLine } from "lucide-react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import PageHeading from "@/components/page-heading";
 import { useDemoImage } from "@/components/demo-image-provider";
 import { detectionService } from "@/lib/detection-service";
@@ -11,6 +11,11 @@ import { demoDelay } from "@/lib/demo-data";
 
 type State = "unavailable" | "checking" | "demo" | "scanning" | "error";
 export default function CameraPage() {
+  const pathname = usePathname();
+  const currentPath = useRef(pathname);
+  useEffect(() => { currentPath.current = pathname; }, [pathname]);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [state, setState] = useState<State>("unavailable");
   const { setCameraDemo } = useDemoImage();
   const router = useRouter();
@@ -23,7 +28,7 @@ export default function CameraPage() {
   async function scan() {
     if (state !== "demo") return;
     setState("scanning");
-    try { await demoDelay(); setCameraDemo(); router.push("/results"); }
+    try { await demoDelay(); setState("demo"); if (!mounted.current || currentPath.current !== "/camera") return; setCameraDemo(); router.push("/results"); }
     catch { setState("error"); }
   }
   return <main className="mx-auto max-w-[1222px] px-6 pb-[72px] pt-[70px] md:px-[86px]">

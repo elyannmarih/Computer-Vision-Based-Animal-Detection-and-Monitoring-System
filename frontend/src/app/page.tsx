@@ -81,7 +81,7 @@ export default function Home() {
 
       <p className="mt-[22px] flex items-center gap-2 text-[11px] text-[#888883]">
         <Info size={17} />
-        Preview images stay in this browser session. Nothing is stored on a server.
+        Local previews stay in your browser. Analyze image sends and stores the image through FastAPI using a simulated detector.
       </p>
     </main>
   );

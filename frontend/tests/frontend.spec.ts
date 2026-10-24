@@ -58,7 +58,7 @@ test("remove, reselect and replace image", async ({ page }) => {
 });
 test("empty image cannot be analyzed; picker is keyboard accessible", async ({ page }) => {
   await page.goto("/upload");
-  await expect(page.getByRole("button", { name: "Analyze image (unavailable)", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Analyze image (simulated model)", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Preview demo results" })).toBeDisabled();
   const picker = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: /Drop your image here/ }).focus();
@@ -89,8 +89,8 @@ test("independent reveal, hide, verification and confidence", async ({ page }) =
   await expect(page.getByTestId("detection-box-1")).toHaveAttribute("data-revealed", "false");
   await page.getByRole("button", { name: "Reveal detection 2", exact: true }).click();
   await page.getByRole("group", { name: "Detection 2", exact: true }).getByRole("button", { name: "Incorrect", exact: true }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Marked correct" })).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: "Marked incorrect" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("status").filter({ hasText: "Marked correct" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("status").filter({ hasText: "Marked incorrect" })).toBeVisible();
   await page.getByRole("button", { name: "Hide detection 2", exact: true }).click();
   await expect(page.getByTestId("detection-box-2")).toHaveAttribute("data-revealed", "false");
   await page.getByRole("link", { name: "Analyze another image" }).click();
@@ -102,9 +102,9 @@ for (const verdict of ["Correct", "Incorrect"]) test(`no detection feedback: ${v
   await expect(page.getByRole("heading", { name: /No lizard detected/i })).toBeVisible();
   await expect(page.getByTestId("detection-box-1")).toHaveCount(0);
   await page.getByRole("button", { name: verdict, exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText(`Marked ${verdict.toLowerCase()} (demo only)`);
+  await expect(page.getByRole("main").getByRole("status")).toHaveText(`Marked ${verdict.toLowerCase()} (demo only)`);
   await page.getByLabel("Demo scenario").selectOption("detected");
-  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.getByRole("main").getByRole("status")).toHaveCount(0);
 });
 test("direct results and refresh explain temporary image state", async ({ page }) => {
   await page.goto("/results");

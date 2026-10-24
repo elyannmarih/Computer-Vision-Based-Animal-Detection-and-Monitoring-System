@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import BackendStatus from "@/components/backend-status";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
@@ -80,10 +81,11 @@ export default function AppShell({
             <div>
               <p className="text-[11px] font-medium">Detection model</p>
               <p className="mt-1 text-[11px] text-[#969691]">
-                Integration pending
+                Simulated model · stub-0.1
               </p>
             </div>
           </div>
+          <BackendStatus />
         </div>
       </aside>
 

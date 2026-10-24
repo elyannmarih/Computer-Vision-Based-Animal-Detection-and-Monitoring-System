@@ -5,18 +5,17 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { Upload, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { IMAGE_TYPES, MAX_IMAGE_SIZE } from "@/lib/image-rules";
+import { detectionService } from "@/lib/detection-service";
 import { demoDelay } from "@/lib/demo-data";
 import { useDemoImage } from "@/components/demo-image-provider";
 
-const MAX_SIZE = 10 * 1024 * 1024;
-const ALLOWED_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
-
 export default function UploadPage() {
+  const pathname = usePathname();
+  const currentPath = useRef(pathname);
+  useEffect(() => { currentPath.current = pathname; }, [pathname]);
+  const mounted = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
 
@@ -24,14 +23,17 @@ export default function UploadPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const selectionRef = useRef(0);
   const [dragging, setDragging] = useState(false);
 
   const router = useRouter();
-  const { setImage } = useDemoImage();
+  const { setImage, setResult } = useDemoImage();
 
   useEffect(() => {
+    mounted.current = true;
     return () => {
+      mounted.current = false;
       selectionRef.current += 1;
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
@@ -57,12 +59,12 @@ export default function UploadPage() {
 
     if (!selected) return;
 
-    if (!ALLOWED_TYPES.has(selected.type)) {
+    if (!IMAGE_TYPES.has(selected.type)) {
       setError("Please select a JPG, PNG, or WEBP image.");
       return;
     }
 
-    if (selected.size > MAX_SIZE) {
+    if (selected.size > MAX_IMAGE_SIZE) {
       setError("Image size must not exceed 10 MB.");
       return;
     }
@@ -108,7 +110,7 @@ export default function UploadPage() {
             Upload an image
           </h1>
           <p className="mt-[17px] text-[13px] text-[#747470]">
-            Choose a photo to explore the results interface. AI analysis is awaiting backend integration.
+            Send a photo to FastAPI or preview locally. The backend detector is still simulated (stub-0.1), not trained YOLO.
           </p>
         </div>
       </div>
@@ -193,11 +195,21 @@ export default function UploadPage() {
         {preview && <button disabled={busy} type="button" onClick={() => inputRef.current?.click()} className="mt-3 rounded-lg border border-[#deded9] px-4 py-2 text-xs">Replace image</button>}
         <div className="flex min-h-[80px] flex-wrap items-center justify-between gap-4 px-1 pt-4">
           <p className="text-[10px] text-[#747470]">
-            Image preview is local until analysis is connected.
+            Analyze image uploads and stores this image through the backend. Local demo does not upload it.
           </p>
 
           
-        <button type="button" disabled title="FastAPI integration pending" className="rounded-lg bg-[#171717] px-4 py-3 text-xs text-white opacity-40">Analyze image (unavailable)</button>
+        <button type="button" disabled={!file || busy} onClick={async () => {
+          if (!file || busy) return;
+          setBusy(true); setSubmitting(true); setError("");
+          const selection = selectionRef.current;
+          const response = await detectionService.analyzeImage({ image: file });
+          setBusy(false); setSubmitting(false);
+          if (selection !== selectionRef.current) return;
+          if (!mounted.current || currentPath.current !== "/upload") return;
+          if (response.ok) { setResult(response.data); router.push("/results"); }
+          else { setError(response.error.message); setBusy(false); setSubmitting(false); }
+        }} className="rounded-lg bg-[#171717] px-4 py-3 text-xs text-white disabled:opacity-40">{submitting ? "Submitting to backend…" : "Analyze image (simulated model)"}</button>
         <button
           type="button"
           disabled={!file || busy}
@@ -206,6 +218,8 @@ export default function UploadPage() {
             setBusy(true);
             try {
               await demoDelay();
+              setBusy(false);
+              if (!mounted.current || currentPath.current !== "/upload") return;
               setImage(file);
               router.push("/results");
             } catch {
@@ -221,7 +235,7 @@ export default function UploadPage() {
         </div>
       </section>
 
-      {busy && <p role="status" className="mt-3 text-xs text-[#747470]">Preparing demo preview. No AI analysis is running.</p>}
+      {busy && <p role="status" className="mt-3 text-xs text-[#747470]">{submitting ? "Uploading to FastAPI. Predictions use the simulated backend detector." : "Preparing demo preview. No AI analysis is running."}</p>}
 
       {error && (
         <p role="alert" className="mt-3 text-sm text-red-700">
