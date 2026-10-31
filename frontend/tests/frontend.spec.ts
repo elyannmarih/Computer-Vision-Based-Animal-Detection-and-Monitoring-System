@@ -22,10 +22,15 @@ const liveCamera = {
   model_version: "yolo11n-test", detections: [{ class_label: "lizard", confidence: 0.73, x_min: 0.2, y_min: 0.2, width: 0.3, height: 0.3 }],
   last_frame_at: "2026-10-31T16:00:00Z", last_saved_at: null, save_interval: 30, save_confidence: 0.5,
 };
-type Options = { analyzeImageId?: string; analyzeStatus?: number; live?: unknown[] | "offline" };
+const detectorModels = [
+  { version: "dog-test", title: "Dogs", classes: ["dog"], precision: null },
+  { version: "yolo11n-test", title: "Lizards", classes: ["lizard"], precision: 0.79 },
+];
+type Options ={ analyzeImageId?: string; analyzeStatus?: number; live?: unknown[] | "offline" };
 
 async function mockApi(page: Page, options: Options = {}) {
   const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  let active = "yolo11n-test";
   await page.route(API, async (route) => {
     const url = new URL(route.request().url());
     const p = url.pathname;
@@ -41,6 +46,11 @@ async function mockApi(page: Page, options: Options = {}) {
     if (imageMatch) return results[imageMatch[1]] ? json(route, results[imageMatch[1]].image) : json(route, { detail: "images row not found" }, 404);
     if (p === "/detections") return json(route, results[url.searchParams.get("image_id") ?? ""]?.detections ?? []);
     if (p.startsWith("/models/")) return json(route, { version_number: "yolo11n-test" });
+    if (p === "/detector") {
+      if (route.request().method() === "PUT") active = JSON.parse(route.request().postData() ?? "{}").version;
+      const models = detectorModels.map((m) => ({ ...m, active: m.version === active }));
+      return json(route, route.request().method() === "PUT" ? models.find((m) => m.active) : models);
+    }
     return json(route, { detail: "Not Found" }, 404);
   });
 }
@@ -193,6 +203,19 @@ test("camera: live view, current detections, recent captures and scan now", asyn
   await page.getByRole("button", { name: "Scan now", exact: true }).click();
   await expect(page).toHaveURL(/\/results\?image=img-cam$/);
   await expect(page.getByText(/Camera frame/)).toBeVisible();
+});
+test("model picker shows the active model and switches it", async ({ page }) => {
+  await page.goto("/");
+  const mobile = test.info().project.name.startsWith("mobile");
+  const picker = page.locator(mobile ? "#model-picker-mobile" : "#model-picker-sidebar");
+  await expect(picker).toHaveValue("yolo11n-test");
+  await expect(page.getByText("Detecting: Lizards")).toBeVisible();
+  const switched = page.waitForRequest((r) => r.url().endsWith("/detector") && r.method() === "PUT");
+  await picker.selectOption({ label: "Dogs" });
+  expect(JSON.parse((await switched).postData() ?? "{}")).toEqual({ version: "dog-test" });
+  await expect(picker).toHaveValue("dog-test");
+  await expect(page.getByText("Detecting: Dogs")).toBeVisible();
+  await expect(picker.locator("xpath=..").getByText("Detects: Dog")).toBeVisible();
 });
 test("guide includes six steps and working links", async ({ page }) => {
   await page.goto("/how-to-use");

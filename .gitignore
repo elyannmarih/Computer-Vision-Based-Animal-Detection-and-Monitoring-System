@@ -232,3 +232,6 @@ backend/training/runs/
 backend/training/*.log
 *.pt
 !backend/models/**/*.pt
+
+# The detector model last picked in the app (each machine keeps its own)
+backend/models/selected.txt

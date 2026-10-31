@@ -1,10 +1,12 @@
 """Lizard detector.
 
-Runs YOLO models trained by training/train_lizard.py. Each model lives in its
-own folder, models/<name>/ (model.pt + model.json with its metrics), and its
-folder name is the version recorded in the models table. The model used is
-LIZARD_MODEL if set, otherwise the one named in models/active.txt;
-`use_model` switches it while the app runs.
+Runs YOLO models: trained by training/train_lizard.py, or pretrained ones added by
+training/add_pretrained.py (e.g. the dog model). Each model lives in its own
+folder, models/<name>/ (model.pt + model.json with its title and metrics), and
+its folder name is the version recorded in the models table. At startup the
+model used is LIZARD_MODEL if set, else the one last picked in the app
+(models/selected.txt), else the one named in models/active.txt; `use_model`
+switches it while the app runs (the app's picker calls PUT /detector).
 
 With no model configured, `detect` falls back to a STUB that returns plausible,
 deterministic fake detections (the same image always gives the same result)
@@ -30,6 +32,7 @@ log = logging.getLogger(__name__)
 TARGET_LABEL = "lizard"
 
 MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
+SELECTED_FILE = MODELS_DIR / "selected.txt"  # the model last picked in the app (not in git)
 CONFIDENCE = float(os.getenv("LIZARD_CONFIDENCE", "0.25"))
 
 
@@ -39,6 +42,18 @@ class Model:
     precision: float | None = None  # measured on held-out images when the model was trained
     info: dict = field(default_factory=dict, compare=False)  # everything in model.json
     weights: Path | None = None  # None for the stub
+
+    @property
+    def title(self) -> str:
+        """The name shown in the app's model picker."""
+        return self.info.get("title") or self.version
+
+    @property
+    def classes(self) -> list[str]:
+        """The labels this model reports."""
+        if "class_map" in self.info:
+            return sorted(set(self.info["class_map"].values()))
+        return sorted({label(n) for n in self.info.get("classes", {}).values()}) if self.weights else [TARGET_LABEL]
 
 
 STUB = Model("stub-0.1")
@@ -56,9 +71,9 @@ class Detection:
 
 
 def available_models() -> list[Model]:
-    """Every trained model under models/, newest first."""
+    """Every model under models/, by title."""
     models = [load_model(p.parent.name) for p in MODELS_DIR.glob("*/model.pt")]
-    return sorted(models, key=lambda m: m.info.get("trained_at", ""), reverse=True)
+    return sorted(models, key=lambda m: (m.title.lower(), m.version))
 
 
 def load_model(version: str) -> Model:
@@ -77,12 +92,17 @@ def active() -> Model:
     return _active
 
 
-def use_model(version: str) -> Model:
-    """Make `version` the model used by later `detect` calls (requests already running keep theirs)."""
+def use_model(version: str, remember: bool = False) -> Model:
+    """Make `version` the model used by later `detect` calls (requests already running keep theirs).
+
+    remember=True also saves the choice in models/selected.txt, so it's used after a restart.
+    """
     global _active
     model = load_model(version)
     _yolo(model)  # load now so a bad weights file fails here, not on the next upload
     _active = model
+    if remember:
+        SELECTED_FILE.write_text(version + "\n")
     return model
 
 
@@ -166,14 +186,23 @@ def _stub_detect(image: bytes) -> list[Detection]:
     return sorted(detections, key=lambda d: d.confidence, reverse=True)
 
 
-def _configured() -> str | None:
-    """LIZARD_MODEL, else the name in models/active.txt."""
-    active_file = MODELS_DIR / "active.txt"
-    name = os.getenv("LIZARD_MODEL") or (active_file.read_text() if active_file.exists() else "")
-    return name.strip() or None
+def _read(path: Path) -> str | None:
+    return (path.read_text().strip() or None) if path.exists() else None
 
 
-# A configured model that doesn't exist is an error, not a silent switch to fake detections
-_active = load_model(_configured()) if _configured() else STUB
-if _active is STUB:
+def _startup_model() -> Model:
+    """LIZARD_MODEL, else the last model picked in the app (models/selected.txt), else models/active.txt."""
+    if name := (os.getenv("LIZARD_MODEL") or "").strip():
+        return load_model(name)  # a configured model that doesn't exist is an error, not fake detections
+    if name := _read(SELECTED_FILE):
+        try:
+            return load_model(name)
+        except ValueError:
+            log.warning("The model picked in the app, %r, no longer exists; using models/active.txt.", name)
+    if name := _read(MODELS_DIR / "active.txt"):
+        return load_model(name)
     log.warning("No lizard model configured (LIZARD_MODEL or %s); using stub detections.", MODELS_DIR / "active.txt")
+    return STUB
+
+
+_active = _startup_model()

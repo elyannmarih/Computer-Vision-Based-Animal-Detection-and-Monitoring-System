@@ -1,4 +1,4 @@
-import type { AnalysisResult, ApiError, ApiResponse, DetectionRecord, ImageRecord, LiveCamera } from "@/types/detection";
+import type { AnalysisResult, ApiError, ApiResponse, DetectionRecord, DetectorModel, ImageRecord, LiveCamera } from "@/types/detection";
 
 /** FastAPI base URL; set NEXT_PUBLIC_API_URL when the backend isn't on the default port. */
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
@@ -48,6 +48,16 @@ export const detectionService = {
   /** Save the camera's current frame and its detections, like an upload. */
   scanCamera: (cameraId: string) => request<AnalysisResult>(`/live/${cameraId}/scan`, { method: "POST" }),
   recentCaptures: (cameraId: string, limit = 6) => request<ImageRecord[]>(`/images?camera_id=${cameraId}&limit=${limit}`),
+
+  /** Detector models on the server, with the one in use marked active. */
+  detectorModels: () => request<DetectorModel[]>("/detector"),
+  /** Switch the model used for uploads and live cameras; the server remembers it across restarts. */
+  selectDetectorModel: (version: string) =>
+    request<DetectorModel>("/detector", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version }),
+    }),
 };
 
 export const percent = (score: number) => `${(score * 100).toFixed(1)}%`;

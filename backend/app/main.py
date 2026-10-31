@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from psycopg import errors
 
-from . import analysis, camera, storage
+from . import analysis, camera, detector_routes, storage
 from . import schemas as s
 from .crud import Conn, crud_router
 from .db import pool
@@ -51,6 +51,7 @@ def health(conn: Conn):
 
 app.include_router(analysis.router)
 app.include_router(camera.router)
+app.include_router(detector_routes.router)
 
 
 app.include_router(crud_router(

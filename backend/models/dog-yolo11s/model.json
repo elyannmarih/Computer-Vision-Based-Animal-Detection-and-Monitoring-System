@@ -1,0 +1,13 @@
+{
+  "version": "dog-yolo11s",
+  "title": "Dogs",
+  "base_model": "yolo11s.pt",
+  "dataset": "COCO (pretrained by Ultralytics, not fine-tuned)",
+  "classes": [
+    "dog"
+  ],
+  "class_map": {
+    "dog": "dog"
+  },
+  "added_at": "2026-10-31T17:16:44+00:00"
+}

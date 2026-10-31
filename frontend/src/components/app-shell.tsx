@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   ScanLine,
 } from "lucide-react";
+import ModelPicker, { useDetectorModels } from "@/components/model-picker";
 
 const links = [
   { href: "/", label: "Home", icon: House },
@@ -25,6 +26,7 @@ export default function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const detector = useDetectorModels();
 
   const pageTitle =
   pathname === "/upload"
@@ -75,15 +77,7 @@ export default function AppShell({
         </nav>
 
         <div className="mt-auto border-t border-[#e9e9e5] px-[10px] pt-[18px]">
-          <div className="flex items-start gap-[9px]">
-            <span className="mt-[6px] h-[7px] w-[7px] rounded-full bg-green-600" />
-            <div>
-              <p className="text-[11px] font-medium">Detection model</p>
-              <p className="mt-1 text-[11px] text-[#969691]">
-                YOLO, on the Detectra server
-              </p>
-            </div>
-          </div>
+          <ModelPicker id="model-picker-sidebar" {...detector} />
         </div>
       </aside>
 
@@ -96,8 +90,8 @@ export default function AppShell({
             <span className="hidden text-xs font-medium sm:inline">{pageTitle}</span>
           </div>
           <span className="flex items-center gap-[9px] text-[11px] text-[#747470]">
-            <span className="h-[6px] w-[6px] rounded-full bg-[#747470]" />
-            Lizard monitoring
+            <span className={`h-[6px] w-[6px] rounded-full ${detector.active ? "bg-green-600" : "bg-[#747470]"}`} />
+            {detector.active ? `Detecting: ${detector.active.title}` : "Animal monitoring"}
           </span>
         </header>
 
@@ -108,6 +102,9 @@ export default function AppShell({
             </Link>
           ))}
         </nav>
+        <div className="border-b border-[#deded9] px-6 py-3 md:hidden">
+          <ModelPicker id="model-picker-mobile" {...detector} />
+        </div>
 
         <div id="main-content" tabIndex={-1}>{children}</div>
       </div>

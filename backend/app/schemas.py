@@ -244,3 +244,17 @@ class LiveCameraStatus(BaseModel):
     last_saved_at: datetime | None = None
     save_interval: float  # seconds between automatic saves of frames with targets; 0 = off
     save_confidence: Unit  # automatic saves need a target at least this confident
+
+
+# --- detector models -------------------------------------------------------
+
+class DetectorModel(BaseModel):
+    version: str  # folder under backend/models/, also models.version_number
+    title: str
+    classes: list[str]
+    precision: Unit | None = None
+    active: bool
+
+
+class DetectorSelect(BaseModel):
+    version: str

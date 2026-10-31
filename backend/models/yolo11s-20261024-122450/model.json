@@ -1,5 +1,6 @@
 {
   "version": "yolo11s-20261024-122450",
+  "title": "Lizards (larger model)",
   "base_model": "yolo11s.pt",
   "dataset": "roboflow:uni-of-leicester-l2rzt/lizard_detection/2",
   "classes": {

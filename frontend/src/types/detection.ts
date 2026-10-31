@@ -44,3 +44,5 @@ export type LiveCamera = {
 
 export type ApiError = { code: "connection" | "invalid-input" | "not-found" | "unknown"; message: string; retryable: boolean };
 export type ApiResponse<T> = { ok: true; data: T } | { ok: false; error: ApiError };
+
+export type DetectorModel = { version: string; title: string; classes: string[]; precision: number | null; active: boolean };

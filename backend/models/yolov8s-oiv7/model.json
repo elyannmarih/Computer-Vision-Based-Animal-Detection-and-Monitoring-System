@@ -1,5 +1,6 @@
 {
   "version": "yolov8s-oiv7",
+  "title": "Animals and people",
   "base_model": "yolov8s-oiv7.pt",
   "dataset": "Open Images V7 (pretrained by Ultralytics, not fine-tuned)",
   "classes": [

@@ -1,13 +1,16 @@
-"""Add an Ultralytics Open Images V7 model (600 classes, no fine-tuning) as a multi-animal detector.
+"""Add an Ultralytics pretrained model (no fine-tuning) as a Detectra model, limited to some classes.
 
-    python training/add_pretrained.py                          # yolov8m-oiv7
+    python training/add_pretrained.py                          # yolov8m-oiv7, animals in CLASS_MAP
     python training/add_pretrained.py --weights yolov8s-oiv7.pt --activate
+    python training/add_pretrained.py --weights yolo11s.pt --classes dog --name dog-yolo11s --title Dogs
     python training/add_pretrained.py --compare yolo11n-20261024-110930   # also score another model
 
-The model is limited to the classes in CLASS_MAP, which also folds Open Images' sub-classes into
-the labels Detectra stores (Man/Woman/Boy/Girl -> person, Brown bear -> bear, Owl -> bird, ...).
-It's saved to backend/models/<weights name>/ like trained models, and scored on the lizard
-dataset's test images (the only labelled data here), for the lizard class only.
+Without --classes the model is limited to the classes in CLASS_MAP, which also folds Open Images'
+sub-classes into the labels Detectra stores (Man/Woman/Boy/Girl -> person, Brown bear -> bear,
+Owl -> bird, ...). With --classes it keeps just those (COCO weights know 80 classes, including
+person, dog, cat, bird, horse, sheep, cow and bear). It's saved to backend/models/<name>/ like
+trained models; models that detect lizards are scored on the lizard dataset's test images (the
+only labelled data here), for the lizard class only.
 """
 import argparse
 import json
@@ -74,7 +77,12 @@ def score_lizards(model) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--weights", default="yolov8m-oiv7.pt", help="Ultralytics Open Images V7 weights")
+    parser.add_argument("--weights", default="yolov8m-oiv7.pt",
+                        help="Ultralytics pretrained weights: Open Images (*-oiv7.pt) or COCO (yolo11n.pt, yolo11s.pt, ...)")
+    parser.add_argument("--classes", nargs="+",
+                        help="keep only these classes of the weights, e.g. --classes dog (default: the animal CLASS_MAP)")
+    parser.add_argument("--name", help="model folder name (default: the weights name)")
+    parser.add_argument("--title", help="name shown in the app's model picker")
     parser.add_argument("--activate", action="store_true", help="make it the model the API uses")
     parser.add_argument("--compare", nargs="*", default=[], help="other models/ folders to score the same way")
     args = parser.parse_args()
@@ -85,26 +93,31 @@ def main():
     weights = Path(attempt_download_asset(str(PRETRAINED / args.weights)))
     from ultralytics import YOLO
 
-    missing = set(CLASS_MAP) - set(YOLO(weights).names.values())
+    class_map = {c: c.lower() for c in args.classes} if args.classes else CLASS_MAP
+    missing = set(class_map) - set(YOLO(weights).names.values())
     if missing:
-        raise SystemExit(f"{args.weights} has no classes named {sorted(missing)}; fix CLASS_MAP.")
-    name = weights.stem
+        raise SystemExit(f"{args.weights} has no classes named {sorted(missing)}.")
+    name = args.name or weights.stem
+    labels = sorted(set(class_map.values()))
     folder = BACKEND / "models" / name
     folder.mkdir(parents=True, exist_ok=True)
     shutil.copy2(weights, folder / "model.pt")
     info = {
         "version": name,
+        "title": args.title or ", ".join(label.capitalize() for label in labels),
         "base_model": args.weights,
-        "dataset": "Open Images V7 (pretrained by Ultralytics, not fine-tuned)",
-        "classes": sorted(set(CLASS_MAP.values())),
-        "class_map": CLASS_MAP,
+        "dataset": ("Open Images V7" if "oiv7" in args.weights else "COCO") + " (pretrained by Ultralytics, not fine-tuned)",
+        "classes": labels,
+        "class_map": class_map,
         "added_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     (folder / "model.json").write_text(json.dumps(info, indent=2) + "\n")
 
     from app import detector
 
-    if LIZARD_TEST.is_dir():
+    if "lizard" not in labels:
+        print(f"{name} doesn't detect lizards; skipped scoring on the lizard test set.")
+    elif LIZARD_TEST.is_dir():
         info["eval_split"] = "lizard_detection test, lizard class only (IoU 0.5)"
         lizard = score_lizards(detector.load_model(name))
         info["precision"], info["recall"] = lizard["precision"], lizard["recall"]

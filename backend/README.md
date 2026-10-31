@@ -35,6 +35,11 @@ python seed.py --reset  # wipe ALL rows in every table, then add test data
 - `POST /detections/{detection_id}/verify` — `{"verified_by_id": "<trusted person id>", "verdict": "correct" | "incorrect"}`. Records the verdict and updates the image's `human_verified` (true once every detection is reviewed) and `number_targets_verified`.
 - `POST /images/{image_id}/verify` — one verdict for a whole image (e.g. confirming "no lizard").
 
+**Detector models**
+
+- `GET /detector` — the models in `backend/models/`, with titles, classes, precision and which one is active.
+- `PUT /detector` — `{"version": "<model folder>"}`; switches the model for uploads and live cameras and remembers it across restarts.
+
 **Live cameras** (see [Live camera](#live-camera))
 
 - `GET /live` — cameras being streamed: connection state, resolution, analysis frame rate, model, and the detections on the latest frame.
@@ -69,6 +74,8 @@ models/
 | `yolo11n-20261024-110930` (active) | lizard: trained on the [Roboflow Lizard_detection dataset](https://universe.roboflow.com/uni-of-leicester-l2rzt/lizard_detection) (Uni of Leicester, CC BY 4.0) | 5.5 MB |
 | `yolo11s-20261024-122450` | lizard: same data, larger model | 19 MB |
 | `yolov8s-oiv7` | bear, bird, cat, deer, dog, fox, lizard, person, raccoon, snake, squirrel: Ultralytics' Open Images V7 model, not fine-tuned | 23 MB |
+| `dog-yolo11s` | dog: Ultralytics' COCO-trained YOLO11s, limited to its `dog` class, not fine-tuned | 19 MB |
+| `deer-oiv7s` | deer: the Open Images model above, limited to its `Deer` class (COCO has no deer) | 23 MB, same file as `yolov8s-oiv7` so git stores it once |
 
 Lizard results on the dataset's 54 test images, matching boxes at IoU 0.5 with the API's 0.25 threshold:
 
@@ -80,7 +87,9 @@ Lizard results on the dataset's 54 test images, matching boxes at IoU 0.5 with t
 
 So the Open Images model rarely calls something a lizard wrongly, but misses most lizards (in 20 of the 54 images it finds nothing). There's no labelled data here for its other classes, so those haven't been scored. A model's `model.json` can carry a `class_map` that limits it to some of its classes and renames them (Open Images' Man/Woman/Boy/Girl become `person`, Owl/Duck/Eagle/… become `bird`). Overlapping boxes are merged across those classes.
 
-To switch models, write another folder name to `models/active.txt` (or set `LIZARD_MODEL`) and restart the API; a name that doesn't exist stops the API from starting. In code, `detector.available_models()` lists them and `detector.use_model(name)` switches without a restart. With no model configured the detector falls back to the old **stub** (deterministic fake detections, model version `stub-0.1`) and logs a warning.
+To switch models, pick one in the app: the **Detection model** picker at the bottom of the sidebar (or under the navigation on phones) calls `PUT /detector`. It takes effect at once for uploads and live cameras, and is saved to `models/selected.txt` (not in git), so it's still in use after a restart. `GET /detector` lists the models with their titles (`title` in `model.json`) and which one is active.
+
+At startup the API uses `LIZARD_MODEL` if it's set, else the model last picked in the app, else `models/active.txt` (the team default, in git). A `LIZARD_MODEL` or `active.txt` name that doesn't exist stops the API from starting. In code, `detector.available_models()` lists the models and `detector.use_model(name)` switches. With no model configured the detector falls back to the old **stub** (deterministic fake detections, model version `stub-0.1`) and logs a warning.
 
 ### Training
 
@@ -94,6 +103,14 @@ python training/train_lizard.py
 The script downloads the dataset to `training/datasets/`, fine-tunes `yolo11n.pt` (`--model yolo11s.pt` for a larger model; `--epochs`, `--imgsz`, `--batch`, `--device` are also available), evaluates on the test split, and saves the best weights and metrics to a new `models/<base model>-<date>-<time>/` folder. It doesn't change the active model unless you pass `--activate`. Run outputs (curves, confusion matrix, sample predictions) are in `training/runs/`.
 
 `python training/add_pretrained.py --weights yolov8s-oiv7.pt` downloads an Open Images model (`yolov8n/s/m/l/x-oiv7.pt`), applies the class map in that script, saves it to `models/<name>/`, and scores it on the lizard test images (`--compare <folder> ...` scores other models the same way).
+
+The same script makes a model for any classes a pretrained model already knows. The dog model was made with:
+
+```bash
+python training/add_pretrained.py --weights yolo11s.pt --classes dog --name dog-yolo11s --title Dogs
+```
+
+COCO weights (`yolo11n.pt`, `yolo11s.pt`, ...) know 80 classes, including `person`, `cat`, `bird`, `horse`, `sheep`, `cow` and `bear`, so for example `--classes cat --name cat-yolo11s --title Cats` adds a cat model. For animals COCO doesn't have, use the Open Images weights, whose class names are capitalized; the deer model was made with `--weights yolov8s-oiv7.pt --classes Deer --name deer-oiv7s --title Deer`. New models appear in the picker straight away.
 
 ## Live camera
 

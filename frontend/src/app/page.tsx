@@ -7,7 +7,7 @@ const options = [
     number: "01",
     title: "Upload image",
     description:
-      "Select a JPG, PNG, or WEBP file from your device and analyze it for lizards.",
+      "Select a JPG, PNG, or WEBP file from your device and analyze it with the selected detection model.",
     href: "/upload",
     icon: Upload,
     dark: false,
@@ -36,8 +36,8 @@ export default function Home() {
       </h1>
 
       <p className="mt-[30px] max-w-[590px] text-sm leading-[22px] text-[#747470]">
-        Upload a photo or watch a live camera. A YOLO detection model finds
-        lizards, and every analyzed image is saved with its detections.
+        Upload a photo or watch a live camera. The selected YOLO model (lizards, dogs and more)
+        finds animals, and every analyzed image is saved with its detections.
       </p>
 
       <div className="mt-[54px] grid gap-[14px] lg:grid-cols-2">
