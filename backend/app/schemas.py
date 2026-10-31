@@ -217,3 +217,30 @@ class AnalysisResult(BaseModel):
     image: ImageRead
     detections: list[DetectionRead]
     model_version: str
+
+
+# --- live cameras ----------------------------------------------------------
+
+class LiveDetection(BaseModel):
+    class_label: str
+    confidence: Unit
+    x_min: Unit
+    y_min: Unit
+    width: Unit
+    height: Unit
+
+
+class LiveCameraStatus(BaseModel):
+    camera_id: UUID
+    location_name: str
+    connected: bool
+    error: str | None = None
+    width: int | None = None
+    height: int | None = None
+    fps: float | None = None  # frames analyzed per second
+    model_version: str | None = None
+    detections: list[LiveDetection] = []  # on the latest analyzed frame
+    last_frame_at: datetime | None = None
+    last_saved_at: datetime | None = None
+    save_interval: float  # seconds between automatic saves of frames with targets; 0 = off
+    save_confidence: Unit  # automatic saves need a target at least this confident
