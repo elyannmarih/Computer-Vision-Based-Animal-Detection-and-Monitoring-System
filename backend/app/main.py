@@ -12,6 +12,7 @@ from . import analysis, camera, detector_routes, storage
 from . import schemas as s
 from .crud import Conn, crud_router
 from .db import pool
+from .verification import lock_image, update_image_verification
 
 
 @asynccontextmanager
@@ -85,8 +86,14 @@ app.include_router(crud_router(
 @app.post("/images/{image_id}/verify", response_model=s.HumanVerificationRead, status_code=201, tags=["images"])
 def verify_image(image_id: UUID, body: s.ImageVerification, conn: Conn):
     """Record a human verification and link it to the image and its detections in one transaction."""
-    if not conn.execute("SELECT 1 FROM images WHERE image_id = %s FOR UPDATE", [image_id]).fetchone():
-        raise HTTPException(404, "images row not found")
+    lock_image(conn, image_id)
+    if body.detection_ids is not None:
+        selected = body.detection_ids
+        if not selected or len(set(selected)) != len(selected):
+            raise HTTPException(422, "Select a nonempty set of unique detections, or omit detection_ids for the whole image")
+        rows = conn.execute("SELECT detection_id FROM detections WHERE image_id = %s", [image_id]).fetchall()
+        if not set(map(str, selected)).issubset({str(row["detection_id"]) for row in rows}):
+            raise HTTPException(422, "Every detection must belong to this image")
 
     verification = conn.execute(
         "INSERT INTO human_verifications (verified_by_id, target_found) VALUES (%s, %s) RETURNING *",
@@ -94,10 +101,6 @@ def verify_image(image_id: UUID, body: s.ImageVerification, conn: Conn):
     ).fetchone()
     vid = verification["verification_id"]
 
-    conn.execute(
-        "UPDATE images SET human_verified = true, verification_id = %s WHERE image_id = %s",
-        [vid, image_id],
-    )
     if body.detection_ids is None:
         conn.execute(
             "UPDATE detections SET human_verified = true, verification_id = %s WHERE image_id = %s",
@@ -109,4 +112,5 @@ def verify_image(image_id: UUID, body: s.ImageVerification, conn: Conn):
             " WHERE image_id = %s AND detection_id = ANY(%s)",
             [vid, image_id, body.detection_ids],
         )
+    update_image_verification(conn, image_id, vid)
     return verification

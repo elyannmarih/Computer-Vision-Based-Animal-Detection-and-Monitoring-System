@@ -12,6 +12,7 @@ import {
   ScanLine,
 } from "lucide-react";
 import ModelPicker, { useDetectorModels } from "@/components/model-picker";
+import BackendStatus from "@/components/backend-status";
 
 const links = [
   { href: "/", label: "Home", icon: House },
@@ -78,6 +79,7 @@ export default function AppShell({
 
         <div className="mt-auto border-t border-[#e9e9e5] px-[10px] pt-[18px]">
           <ModelPicker id="model-picker-sidebar" {...detector} />
+          <BackendStatus />
         </div>
       </aside>
 

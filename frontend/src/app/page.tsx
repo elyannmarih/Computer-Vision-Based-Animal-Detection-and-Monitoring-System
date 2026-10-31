@@ -81,7 +81,7 @@ export default function Home() {
 
       <p className="mt-[22px] flex items-center gap-2 text-[11px] text-[#888883]">
         <Info size={17} />
-        Analyzed images and their detections are saved to the Detectra database.
+        Analyze image saves the image and its detections to the Detectra database; local demo previews stay in your browser.
       </p>
     </main>
   );

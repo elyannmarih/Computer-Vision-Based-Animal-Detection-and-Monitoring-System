@@ -51,6 +51,10 @@ python seed.py --reset  # wipe ALL rows in every table, then add test data
 
 `/cameras`, `/models`, `/trusted-persons`, `/human-verifications`, `/images`, `/detections`
 
+**Tables** — each has `GET` (with filters + `limit`/`offset`), `GET /{id}`, `POST`, `PATCH /{id}`, `DELETE /{id}`:
+
+`/cameras`, `/models`, `/trusted-persons`, `/human-verifications`, `/images`, `/detections`
+
 `GET /health` checks the database connection and reports the storage mode.
 
 Database constraint violations (bad foreign key, NOT NULL, CHECK) return `409` with Postgres's message.
@@ -137,9 +141,9 @@ A video file path also works as `CAMERA_RTSP_URL`; it plays at its own frame rat
 - `app/db.py` — connection pool (psycopg 3), one transaction per request
 - `app/schemas.py` — Pydantic request/response models matching the tables
 - `app/crud.py` — generic CRUD router factory
-- `app/analysis.py` — `/analyze`, `record()` (saves an analyzed image and its detections) and per-detection verification
-- `app/camera.py` — live RTSP cameras: per-frame detection, MJPEG stream, saving frames
+- `app/analysis.py` — `/analyze` and per-detection verification
 - `app/detector.py` — YOLO detector, model selection (stub fallback)
+- `app/camera.py` — live RTSP cameras: per-frame detection, MJPEG stream, saving frames
 - `training/train_lizard.py` — downloads the lizard dataset and trains a detector
 - `training/add_pretrained.py` — adds an Open Images multi-animal model
 - `app/storage.py` — S3 or local image storage

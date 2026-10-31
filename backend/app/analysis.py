@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from io import BytesIO
 from typing import Annotated
@@ -5,12 +6,16 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from PIL import Image, UnidentifiedImageError
+from psycopg import IntegrityError
+from psycopg.errors import TransactionRollback, SerializationFailure, DeadlockDetected
 
 from . import detector, storage
 from . import schemas as s
 from .crud import Conn
+from .verification import lock_image, update_image_verification
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Same limits as the frontend upload page
 MAX_SIZE = 10 * 1024 * 1024
@@ -66,10 +71,14 @@ def record(
     camera_id: UUID | None = None,
     captured_at: datetime | None = None,
 ) -> dict:
-    """Store an analyzed image and save it and its detections; returns an AnalysisResult."""
+    """Store an analyzed image and commit it with its detections; returns an AnalysisResult.
+
+    Used for uploads and for live camera frames.
+    """
     targets = sum(detector.is_target(d.class_label) for d in found)
     now = datetime.now(timezone.utc)
 
+    commit_started = False
     key, url = storage.save(data, EXTENSIONS[content_type], content_type, base_url)
     try:
         mid = model_id(conn, model)
@@ -86,8 +95,23 @@ def record(
             ).fetchone()
             for d in found
         ]
-    except Exception:
-        storage.delete(key)  # don't leave an orphaned file if the database write fails
+        # Commit while storage compensation is still in scope. The pool dependency exits idle.
+        commit_started = True
+        conn.commit()
+    except Exception as error:
+        try:
+            conn.rollback()
+        except Exception:
+            logger.warning("Analysis rollback failed; inspect the transaction before retrying")
+        # A lost commit acknowledgement may mean the transaction DID commit.
+        # Retain the image when the outcome is unknown rather than breaking a committed row.
+        if not commit_started or isinstance(error, (IntegrityError, TransactionRollback, SerializationFailure, DeadlockDetected)):
+            try:
+                storage.delete(key)
+            except Exception:
+                logger.warning("Analysis image cleanup failed; manual cleanup may be required")
+        else:
+            logger.warning("Analysis commit outcome unknown; retain image and inspect before retrying")
         raise
     return {"image": row, "detections": detections, "model_version": model.version}
 
@@ -100,8 +124,15 @@ def record(
 )
 def verify_detection(detection_id: UUID, body: s.DetectionVerification, conn: Conn):
     """Record a person's verdict on one detection and update its image's verification totals."""
+    parent = conn.execute("SELECT image_id FROM detections WHERE detection_id = %s", [detection_id]).fetchone()
+    if not parent:
+        raise HTTPException(404, "detections row not found")
+    if body.image_id is not None and str(body.image_id) != str(parent["image_id"]):
+        raise HTTPException(422, "Detection does not belong to this image")
+    lock_image(conn, parent["image_id"])
     det = conn.execute(
-        "SELECT image_id, class_label FROM detections WHERE detection_id = %s FOR UPDATE", [detection_id]
+        "SELECT image_id, class_label FROM detections WHERE detection_id = %s AND image_id = %s FOR UPDATE",
+        [detection_id, parent["image_id"]],
     ).fetchone()
     if not det:
         raise HTTPException(404, "detections row not found")
@@ -116,18 +147,5 @@ def verify_detection(detection_id: UUID, body: s.DetectionVerification, conn: Co
         "UPDATE detections SET human_verified = true, verification_id = %s WHERE detection_id = %s",
         [verification["verification_id"], detection_id],
     )
-    # The image counts as verified once every detection on it has been reviewed
-    conn.execute(
-        """
-        UPDATE images i SET
-            verification_id = %(vid)s,
-            human_verified = NOT EXISTS (
-                SELECT 1 FROM detections d WHERE d.image_id = i.image_id AND NOT d.human_verified),
-            number_targets_verified = (
-                SELECT count(*) FROM detections d JOIN human_verifications v USING (verification_id)
-                WHERE d.image_id = i.image_id AND v.target_found)
-        WHERE i.image_id = %(image_id)s
-        """,
-        {"vid": verification["verification_id"], "image_id": det["image_id"]},
-    )
+    update_image_verification(conn, det["image_id"], verification["verification_id"])
     return verification

@@ -209,6 +209,7 @@ class ImageVerification(BaseModel):
 
 
 class DetectionVerification(BaseModel):
+    image_id: UUID | None = Field(None, description="Expected parent image; optional for existing API clients")
     verified_by_id: UUID
     verdict: Literal["correct", "incorrect"]
 

@@ -1,64 +1,83 @@
-import type { AnalysisResult, ApiError, ApiResponse, DetectionRecord, DetectorModel, ImageRecord, LiveCamera } from "@/types/detection";
+import type {
+  ApiError, ApiResponse, Capture, CameraScanRequest, DetectionResult, DetectorModel, ImageAnalysisRequest, LiveCamera,
+  Reviewer, VerificationRequest,
+} from "@/types/detection";
 
-/** FastAPI base URL; set NEXT_PUBLIC_API_URL when the backend isn't on the default port. */
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
-
-async function request<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
-  let response: Response;
-  try {
-    response = await fetch(`${API_URL}${path}`, { cache: "no-store", ...init });
-  } catch {
-    return { ok: false, error: { code: "connection", message: "Can't reach the Detectra server. Check that it's running and try again.", retryable: true } };
-  }
-  if (response.ok) return { ok: true, data: (await response.json()) as T };
-  const detail = await response.json().then((body) => body?.detail, () => null);
-  const code: ApiError["code"] = response.status === 404 ? "not-found" : response.status < 500 ? "invalid-input" : "unknown";
-  return {
-    ok: false,
-    error: { code, message: typeof detail === "string" ? detail : `The server returned an error (${response.status}).`, retryable: response.status >= 500 },
-  };
+/** Browser transport to the fixed Next.js API routes; the browser never calls FastAPI directly. */
+export interface DetectionService {
+  health(): Promise<ApiResponse<{ status: "ok" }>>;
+  analyzeImage(request: ImageAnalysisRequest): Promise<ApiResponse<DetectionResult>>;
+  /** A saved result by image id (uploads and camera frames). */
+  result(imageId: string): Promise<ApiResponse<DetectionResult>>;
+  liveCameras(): Promise<ApiResponse<LiveCamera[]>>;
+  scanCamera(request: CameraScanRequest): Promise<ApiResponse<DetectionResult>>;
+  captures(cameraId: string): Promise<ApiResponse<Capture[]>>;
+  detectorModels(): Promise<ApiResponse<DetectorModel[]>>;
+  selectDetectorModel(version: string): Promise<ApiResponse<DetectorModel>>;
+  verify(request: VerificationRequest): Promise<ApiResponse<{ verificationId: string }>>;
+  reviewers(): Promise<ApiResponse<Reviewer[]>>;
 }
+function record(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function isResult(value: unknown): value is DetectionResult {
+  return record(value) && typeof value.id === "string" && record(value.image)
+    && typeof value.image.url === "string" && typeof value.image.name === "string"
+    && typeof value.simulated === "boolean" && Array.isArray(value.detections);
+}
+const isCamera = (value: unknown): value is LiveCamera =>
+  record(value) && typeof value.id === "string" && typeof value.name === "string" && typeof value.connected === "boolean" && Array.isArray(value.detections);
+const isModel = (value: unknown): value is DetectorModel =>
+  record(value) && typeof value.version === "string" && typeof value.title === "string" && Array.isArray(value.classes) && typeof value.active === "boolean";
+const segment = (id: string) => encodeURIComponent(id);
 
-export const detectionService = {
-  /** Upload an image; the server runs the active model and saves the image and its detections. */
-  analyzeImage(image: File) {
-    const body = new FormData();
-    body.append("image", image);
-    return request<AnalysisResult>("/analyze", { method: "POST", body });
+export const detectionService: DetectionService = {
+  async health() { return call("health", (value): value is { status: "ok" } => record(value) && value.status === "ok"); },
+  async analyzeImage({ image }) {
+    const form = new FormData(); form.set("image", image);
+    return call("analyze", isResult, { method: "POST", body: form });
   },
-
-  /** A saved image with its detections and the model version that produced them. */
-  async getResult(imageId: string): Promise<ApiResponse<AnalysisResult>> {
-    const [image, detections] = await Promise.all([
-      request<ImageRecord>(`/images/${encodeURIComponent(imageId)}`),
-      request<DetectionRecord[]>(`/detections?image_id=${encodeURIComponent(imageId)}&limit=500`),
-    ]);
-    if (!image.ok) return image;
-    if (!detections.ok) return detections;
-    const modelId = detections.data.find((d) => d.model_id)?.model_id;
-    const model = modelId ? await request<{ version_number: string }>(`/models/${modelId}`) : null;
-    const sorted = [...detections.data].sort((a, b) => b.confidence - a.confidence);
-    return { ok: true, data: { image: image.data, detections: sorted, model_version: model?.ok ? model.data.version_number : null } };
+  async result(imageId) { return call(`results/${segment(imageId)}`, isResult); },
+  async liveCameras() { return call("live", (value): value is LiveCamera[] => Array.isArray(value) && value.every(isCamera)); },
+  async scanCamera({ cameraId }) { return call(`live/${segment(cameraId)}/scan`, isResult, { method: "POST" }); },
+  async captures(cameraId) {
+    return call(`live/${segment(cameraId)}/captures`, (value): value is Capture[] =>
+      Array.isArray(value) && value.every((c) => record(c) && typeof c.id === "string" && typeof c.capturedAt === "string" && typeof c.detections === "number"));
   },
-
-  liveCameras: () => request<LiveCamera[]>("/live"),
-  liveCamera: (cameraId: string) => request<LiveCamera>(`/live/${cameraId}`),
-  /** MJPEG stream of the analyzed frames with boxes drawn; use as an <img> src. */
-  liveVideoUrl: (cameraId: string) => `${API_URL}/live/${cameraId}/video`,
-  /** Save the camera's current frame and its detections, like an upload. */
-  scanCamera: (cameraId: string) => request<AnalysisResult>(`/live/${cameraId}/scan`, { method: "POST" }),
-  recentCaptures: (cameraId: string, limit = 6) => request<ImageRecord[]>(`/images?camera_id=${cameraId}&limit=${limit}`),
-
-  /** Detector models on the server, with the one in use marked active. */
-  detectorModels: () => request<DetectorModel[]>("/detector"),
-  /** Switch the model used for uploads and live cameras; the server remembers it across restarts. */
-  selectDetectorModel: (version: string) =>
-    request<DetectorModel>("/detector", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ version }),
-    }),
+  async detectorModels() { return call("detector", (value): value is DetectorModel[] => Array.isArray(value) && value.every(isModel)); },
+  async selectDetectorModel(version) {
+    return call("detector", isModel, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version }) });
+  },
+  async verify(request) {
+    return call("verify", (value): value is { verificationId: string } => record(value) && typeof value.verificationId === "string", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(request),
+    });
+  },
+  async reviewers() {
+    return call("reviewers", (value): value is Reviewer[] => Array.isArray(value) && value.every(row => record(row) && typeof row.id === "string" && typeof row.name === "string"));
+  },
 };
 
+/** The analyzed MJPEG stream for an <img> src, served through the Next.js proxy. */
+export const liveVideoUrl = (cameraId: string) => `/api/detectra/live/${segment(cameraId)}/video`;
 export const percent = (score: number) => `${(score * 100).toFixed(1)}%`;
 export const titleCase = (label: string) => label.charAt(0).toUpperCase() + label.slice(1);
+
+async function call<T>(path: string, validate: (value: unknown) => value is T, init?: RequestInit): Promise<ApiResponse<T>> {
+  try {
+    const response = await fetch(`/api/detectra/${path}`, { ...init, signal: AbortSignal.timeout(35000) });
+    const result: unknown = await response.json();
+    if (response.ok && record(result) && result.ok === true && validate(result.data)) return { ok: true, data: result.data };
+    if (record(result) && result.ok === false && record(result.error) && typeof result.error.message === "string") {
+      const code = result.error.code;
+      const error: ApiError = {
+        code: code === "connection" || code === "unavailable" || code === "invalid-input" ? code : "unknown",
+        message: result.error.message, retryable: result.error.retryable === true,
+      };
+      return { ok: false, error };
+    }
+    throw new Error("HTTP status and response envelope do not match, or data is missing");
+  } catch {
+    return { ok: false, error: { code: "connection", message: "Request not confirmed. Check the backend before retrying.", retryable: false } };
+  }
+}

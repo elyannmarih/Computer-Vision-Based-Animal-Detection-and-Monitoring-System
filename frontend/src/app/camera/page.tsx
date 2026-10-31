@@ -4,8 +4,8 @@ import { Camera, Info, RotateCcw, ScanLine } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeading from "@/components/page-heading";
-import { detectionService, percent, titleCase } from "@/lib/detection-service";
-import type { ApiError, ImageRecord, LiveCamera } from "@/types/detection";
+import { detectionService, liveVideoUrl, percent, titleCase } from "@/lib/detection-service";
+import type { ApiError, Capture, LiveCamera } from "@/types/detection";
 
 const POLL_MS = 1000;
 
@@ -16,7 +16,7 @@ export default function CameraPage() {
   const [error, setError] = useState<ApiError | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
-  const [captures, setCaptures] = useState<ImageRecord[]>([]);
+  const [captures, setCaptures] = useState<Capture[]>([]);
   const [videoKey, setVideoKey] = useState(0);
 
   const refresh = useCallback(async () => {
@@ -27,7 +27,7 @@ export default function CameraPage() {
     }
     setError(null);
     setCameras(response.data);
-    setSelected((current) => current && response.data.some((c) => c.camera_id === current) ? current : response.data[0]?.camera_id ?? null);
+    setSelected((current) => current && response.data.some((c) => c.id === current) ? current : response.data[0]?.id ?? null);
   }, []);
 
   useEffect(() => {
@@ -44,13 +44,13 @@ export default function CameraPage() {
     };
   }, [refresh]);
 
-  const camera = cameras?.find((c) => c.camera_id === selected) ?? null;
-  const lastSaved = camera?.last_saved_at;
+  const camera = cameras?.find((c) => c.id === selected) ?? null;
+  const lastSaved = camera?.lastSavedAt;
 
   useEffect(() => {
     if (!selected) return;
     let current = true;
-    detectionService.recentCaptures(selected).then((response) => {
+    detectionService.captures(selected).then((response) => {
       if (current && response.ok) setCaptures(response.data);
     });
     return () => {
@@ -62,13 +62,13 @@ export default function CameraPage() {
     if (!camera || scanning) return;
     setScanning(true);
     setScanError("");
-    const response = await detectionService.scanCamera(camera.camera_id);
+    const response = await detectionService.scanCamera({ cameraId: camera.id });
     if (!response.ok) {
       setScanError(response.error.message);
       setScanning(false);
       return;
     }
-    router.push(`/results?image=${response.data.image.image_id}`);
+    router.push(`/results?image=${response.data.id}`);
   }
 
   const state = error ? "error" : cameras === null ? "checking" : !camera ? "none" : camera.connected ? "live" : "reconnecting";
@@ -84,15 +84,15 @@ export default function CameraPage() {
               {/* MJPEG streams need a plain <img>; next/image can't render them */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                key={`${camera.camera_id}-${videoKey}`}
-                src={detectionService.liveVideoUrl(camera.camera_id)}
-                alt={`Live view of ${camera.location_name} with detections outlined`}
+                key={`${camera.id}-${videoKey}`}
+                src={liveVideoUrl(camera.id)}
+                alt={`Live view of ${camera.name} with detections outlined`}
                 onError={() => setTimeout(() => setVideoKey((k) => k + 1), 3000)}
                 className="absolute inset-0 h-full w-full bg-black object-contain"
               />
               <span className="absolute left-4 top-4 flex items-center gap-2 rounded bg-[#171717] px-3 py-2 font-mono text-[9px] uppercase tracking-wide text-white">
                 <span className={`h-2 w-2 rounded-full ${camera.connected ? "bg-red-500" : "bg-[#969691]"}`} />
-                {camera.connected ? "Live" : "Reconnecting"} · {camera.location_name}
+                {camera.connected ? "Live" : "Reconnecting"} · {camera.name}
               </span>
               {!camera.connected && camera.error && (
                 <p role="status" className="z-10 max-w-xs rounded bg-white p-4 text-xs">{camera.error}</p>
@@ -124,22 +124,22 @@ export default function CameraPage() {
           </p>
           {cameras && cameras.length > 1 && (
             <select aria-label="Camera" value={selected ?? ""} onChange={(e) => setSelected(e.target.value)} className="mt-4 rounded-md border border-[#deded9] bg-white px-3 py-2 text-xs">
-              {cameras.map((c) => <option key={c.camera_id} value={c.camera_id}>{c.location_name}</option>)}
+              {cameras.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
           <dl className="my-7 space-y-4 border-y border-[#e9e9e5] py-6 text-xs">
-            <div className="flex justify-between gap-2"><dt className="text-[#747470]">Camera</dt><dd>{camera?.location_name ?? "None"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="text-[#747470]">Camera</dt><dd>{camera?.name ?? "None"}</dd></div>
             <div className="flex justify-between gap-2"><dt className="text-[#747470]">Resolution</dt><dd>{camera?.width ? `${camera.width} × ${camera.height}` : "Unavailable"}</dd></div>
             <div className="flex justify-between gap-2"><dt className="text-[#747470]">Analysis rate</dt><dd>{camera?.fps != null ? `${camera.fps} fps` : "Unavailable"}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#747470]">Model</dt><dd className="truncate">{camera?.model_version ?? "Unavailable"}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#747470]">Auto-save</dt><dd>{camera ? (camera.save_interval > 0 ? `Every ${camera.save_interval}s, ≥ ${percent(camera.save_confidence)}` : "Off") : "Unavailable"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="text-[#747470]">Model</dt><dd className="truncate">{camera?.modelVersion ?? "Unavailable"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="text-[#747470]">Auto-save</dt><dd>{camera ? (camera.saveInterval > 0 ? `Every ${camera.saveInterval}s, ≥ ${percent(camera.saveConfidence)}` : "Off") : "Unavailable"}</dd></div>
           </dl>
 
           <h3 className="text-xs font-medium">In view now</h3>
           {camera && camera.detections.length > 0 ? (
             <ul className="mt-2 space-y-1 text-xs" aria-label="Current detections">
               {camera.detections.map((d, i) => (
-                <li key={i} className="flex justify-between"><span>{titleCase(d.class_label)}</span><span>{percent(d.confidence)}</span></li>
+                <li key={i} className="flex justify-between"><span>{titleCase(d.label)}</span><span>{percent(d.confidence)}</span></li>
               ))}
             </ul>
           ) : (
@@ -156,10 +156,10 @@ export default function CameraPage() {
               <h3 className="text-xs font-medium">Recent captures</h3>
               <ul className="mt-2 space-y-1 text-xs">
                 {captures.map((c) => (
-                  <li key={c.image_id}>
-                    <Link href={`/results?image=${c.image_id}`} className="flex justify-between gap-2 hover:underline">
-                      <span>{new Date(c.captured_at).toLocaleTimeString()}</span>
-                      <span className="text-[#747470]">{c.number_detections} {c.number_detections === 1 ? "detection" : "detections"}</span>
+                  <li key={c.id}>
+                    <Link href={`/results?image=${c.id}`} className="flex justify-between gap-2 hover:underline">
+                      <span>{new Date(c.capturedAt).toLocaleTimeString()}</span>
+                      <span className="text-[#747470]">{c.detections} {c.detections === 1 ? "detection" : "detections"}</span>
                     </Link>
                   </li>
                 ))}
