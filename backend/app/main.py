@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from psycopg import errors
 
-from . import analysis, storage
+from . import analysis, camera, storage
 from . import schemas as s
 from .crud import Conn, crud_router
 from .db import pool
@@ -18,7 +18,9 @@ from .verification import lock_image, update_image_verification
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     pool.open(wait=True, timeout=30)
+    camera.start()
     yield
+    camera.stop()
     pool.close()
 
 
@@ -49,6 +51,7 @@ def health(conn: Conn):
 
 
 app.include_router(analysis.router)
+app.include_router(camera.router)
 
 
 app.include_router(crud_router(

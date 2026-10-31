@@ -225,3 +225,10 @@ __marimo__/
 
 # Locally stored images (backend without S3)
 backend/uploads/
+
+# Lizard detector training (dataset downloads and run outputs; trained models in backend/models/ are kept)
+backend/training/datasets/
+backend/training/runs/
+backend/training/*.log
+*.pt
+!backend/models/**/*.pt

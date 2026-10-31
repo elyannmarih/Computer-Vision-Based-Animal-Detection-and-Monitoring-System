@@ -22,16 +22,17 @@ MAX_SIZE = 10 * 1024 * 1024
 EXTENSIONS = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
 
-def model_id(conn) -> UUID:
-    """The models row for the current detector version, created on first use."""
+def model_id(conn, model: detector.Model) -> UUID:
+    """The models row for a detector model version, created on first use."""
     row = conn.execute(
         "SELECT model_id FROM models WHERE version_number = %s ORDER BY created_date DESC LIMIT 1",
-        [detector.MODEL_VERSION],
+        [model.version],
     ).fetchone()
     if row:
         return row["model_id"]
     return conn.execute(
-        "INSERT INTO models (version_number) VALUES (%s) RETURNING model_id", [detector.MODEL_VERSION]
+        "INSERT INTO models (version_number, precision_rating) VALUES (%s, %s) RETURNING model_id",
+        [model.version, model.precision],
     ).fetchone()["model_id"]
 
 
@@ -43,7 +44,7 @@ def analyze(
     camera_id: Annotated[UUID | None, Form()] = None,
     captured_at: Annotated[datetime | None, Form()] = None,
 ):
-    """Store an image, run the lizard detector on it, and save the detections."""
+    """Store an image, run the active detector model on it, and save the detections."""
     extension = EXTENSIONS.get(image.content_type or "")
     if not extension:
         raise HTTPException(415, "Please upload a JPG, PNG, or WEBP image.")
@@ -55,14 +56,32 @@ def analyze(
     except (UnidentifiedImageError, OSError, SyntaxError):
         raise HTTPException(422, "This image could not be opened. Choose a valid image.")
 
-    found = detector.detect(data)
-    targets = sum(d.class_label == detector.TARGET_LABEL for d in found)
+    model = detector.active()  # held for the request, in case the active model is switched meanwhile
+    found = detector.detect(data, model)
+    return record(conn, data, image.content_type, str(request.base_url), model, found, camera_id, captured_at)
+
+
+def record(
+    conn,
+    data: bytes,
+    content_type: str,
+    base_url: str,
+    model: detector.Model,
+    found: list[detector.Detection],
+    camera_id: UUID | None = None,
+    captured_at: datetime | None = None,
+) -> dict:
+    """Store an analyzed image and commit it with its detections; returns an AnalysisResult.
+
+    Used for uploads and for live camera frames.
+    """
+    targets = sum(detector.is_target(d.class_label) for d in found)
     now = datetime.now(timezone.utc)
 
     commit_started = False
-    key, url = storage.save(data, extension, image.content_type, str(request.base_url))
+    key, url = storage.save(data, EXTENSIONS[content_type], content_type, base_url)
     try:
-        mid = model_id(conn)
+        mid = model_id(conn, model)
         row = conn.execute(
             "INSERT INTO images (camera_id, image_url, captured_at, uploaded_at, targets_detected,"
             " number_detections, number_targets_detected) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING *",
@@ -94,7 +113,7 @@ def analyze(
         else:
             logger.warning("Analysis commit outcome unknown; retain image and inspect before retrying")
         raise
-    return {"image": row, "detections": detections, "model_version": detector.MODEL_VERSION}
+    return {"image": row, "detections": detections, "model_version": model.version}
 
 
 @router.post(
