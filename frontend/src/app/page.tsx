@@ -16,7 +16,7 @@ const options = [
     number: "02",
     title: "Scan camera",
     description:
-      "Capture a single frame from the connected IP camera and run an on-demand scan.",
+      "Watch the connected IP camera with detections on every frame, and save a frame on demand.",
     href: "/camera",
     icon: Camera,
     dark: true,
@@ -36,8 +36,8 @@ export default function Home() {
       </h1>
 
       <p className="mt-[30px] max-w-[590px] text-sm leading-[22px] text-[#747470]">
-        Explore image upload and on-demand camera scanning. This frontend
-        preview uses simulated results; model integration is pending.
+        Upload a photo or watch a live camera. A YOLO detection model finds
+        lizards, and every analyzed image is saved with its detections.
       </p>
 
       <div className="mt-[54px] grid gap-[14px] lg:grid-cols-2">
@@ -81,7 +81,7 @@ export default function Home() {
 
       <p className="mt-[22px] flex items-center gap-2 text-[11px] text-[#888883]">
         <Info size={17} />
-        Preview images stay in this browser session. Nothing is stored on a server.
+        Analyzed images and their detections are saved to the Detectra database.
       </p>
     </main>
   );

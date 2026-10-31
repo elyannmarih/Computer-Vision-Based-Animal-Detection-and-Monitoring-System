@@ -6,8 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { demoDelay } from "@/lib/demo-data";
-import { useDemoImage } from "@/components/demo-image-provider";
+import { detectionService } from "@/lib/detection-service";
 
 const MAX_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
@@ -28,7 +27,19 @@ export default function UploadPage() {
   const [dragging, setDragging] = useState(false);
 
   const router = useRouter();
-  const { setImage } = useDemoImage();
+
+  async function analyze() {
+    if (!file || busy) return;
+    setBusy(true);
+    setError("");
+    const response = await detectionService.analyzeImage(file);
+    if (!response.ok) {
+      setError(response.error.message);
+      setBusy(false);
+      return;
+    }
+    router.push(`/results?image=${response.data.image.image_id}`);
+  }
 
   useEffect(() => {
     return () => {
@@ -108,7 +119,7 @@ export default function UploadPage() {
             Upload an image
           </h1>
           <p className="mt-[17px] text-[13px] text-[#747470]">
-            Choose a photo to explore the results interface. AI analysis is awaiting backend integration.
+            Choose a photo. Detectra runs the detection model on it and saves the image and its results.
           </p>
         </div>
       </div>
@@ -137,7 +148,7 @@ export default function UploadPage() {
             <div className="absolute inset-x-3 bottom-3 flex items-center justify-between rounded-lg bg-black/80 p-3 text-white backdrop-blur-sm">
               <div className="min-w-0">
                 <p className="font-mono text-[9px] uppercase tracking-wide text-white/60">
-                  Ready for demo preview
+                  Ready to analyze
                 </p>
                 <p className="mt-1 truncate text-xs">{file?.name}</p>
               </div>
@@ -193,35 +204,23 @@ export default function UploadPage() {
         {preview && <button disabled={busy} type="button" onClick={() => inputRef.current?.click()} className="mt-3 rounded-lg border border-[#deded9] px-4 py-2 text-xs">Replace image</button>}
         <div className="flex min-h-[80px] flex-wrap items-center justify-between gap-4 px-1 pt-4">
           <p className="text-[10px] text-[#747470]">
-            Image preview is local until analysis is connected.
+            Analyzed images and their detections are saved to Detectra.
           </p>
 
           
-        <button type="button" disabled title="FastAPI integration pending" className="rounded-lg bg-[#171717] px-4 py-3 text-xs text-white opacity-40">Analyze image (unavailable)</button>
         <button
           type="button"
           disabled={!file || busy}
-          onClick={async () => {
-            if (!file || busy) return;
-            setBusy(true);
-            try {
-              await demoDelay();
-              setImage(file);
-              router.push("/results");
-            } catch {
-              setError("Could not prepare the preview. Please try again.");
-              setBusy(false);
-            }
-          }}
-          className="rounded-lg border border-[#deded9] px-4 py-3 text-xs hover:bg-[#f6f6f4] disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={analyze}
+          className="rounded-lg bg-[#171717] px-4 py-3 text-xs text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {busy ? "Preparing demo preview…" : "Preview demo results"}
+          {busy ? "Analyzing…" : "Analyze image"}
         </button>
 
         </div>
       </section>
 
-      {busy && <p role="status" className="mt-3 text-xs text-[#747470]">Preparing demo preview. No AI analysis is running.</p>}
+      {busy && <p role="status" className="mt-3 text-xs text-[#747470]">Running the detection model and saving the results…</p>}
 
       {error && (
         <p role="alert" className="mt-3 text-sm text-red-700">
@@ -233,7 +232,7 @@ export default function UploadPage() {
         {[
           ["01", "Use a clear image", "Avoid heavy blur or very dark photos."],
           ["02", "Supported formats", "Upload JPG, PNG, or WEBP files."],
-          ["03", "On-demand analysis", "Demo previews do not run AI analysis."],
+          ["03", "Saved results", "Each analysis is stored so it can be reviewed later."],
         ].map(([number, title, description]) => (
           <div key={number}>
             <p className="font-mono text-[9px] text-[#aaa]">{number}</p>

@@ -76,11 +76,11 @@ export default function AppShell({
 
         <div className="mt-auto border-t border-[#e9e9e5] px-[10px] pt-[18px]">
           <div className="flex items-start gap-[9px]">
-            <span className="mt-[6px] h-[7px] w-[7px] rounded-full bg-[#969691]" />
+            <span className="mt-[6px] h-[7px] w-[7px] rounded-full bg-green-600" />
             <div>
               <p className="text-[11px] font-medium">Detection model</p>
               <p className="mt-1 text-[11px] text-[#969691]">
-                Integration pending
+                YOLO, on the Detectra server
               </p>
             </div>
           </div>
@@ -97,7 +97,7 @@ export default function AppShell({
           </div>
           <span className="flex items-center gap-[9px] text-[11px] text-[#747470]">
             <span className="h-[6px] w-[6px] rounded-full bg-[#747470]" />
-            Frontend preview
+            Lizard monitoring
           </span>
         </header>
 

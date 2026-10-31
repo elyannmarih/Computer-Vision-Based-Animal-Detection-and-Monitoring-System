@@ -1,16 +1,54 @@
-import type { ApiResponse, CameraScanRequest, CameraStatus, DetectionResult, ImageAnalysisRequest, VerificationRequest } from "@/types/detection";
+import type { AnalysisResult, ApiError, ApiResponse, DetectionRecord, ImageRecord, LiveCamera } from "@/types/detection";
 
-/** Replace this adapter after Evan confirms endpoints, auth and response schemas. */
-export interface DetectionService {
-  cameraStatus(): Promise<ApiResponse<CameraStatus>>;
-  analyzeImage(request: ImageAnalysisRequest): Promise<ApiResponse<DetectionResult>>;
-  scanCamera(request: CameraScanRequest): Promise<ApiResponse<DetectionResult>>;
-  verify(request: VerificationRequest): Promise<ApiResponse<void>>;
+/** FastAPI base URL; set NEXT_PUBLIC_API_URL when the backend isn't on the default port. */
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
+
+async function request<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { cache: "no-store", ...init });
+  } catch {
+    return { ok: false, error: { code: "connection", message: "Can't reach the Detectra server. Check that it's running and try again.", retryable: true } };
+  }
+  if (response.ok) return { ok: true, data: (await response.json()) as T };
+  const detail = await response.json().then((body) => body?.detail, () => null);
+  const code: ApiError["code"] = response.status === 404 ? "not-found" : response.status < 500 ? "invalid-input" : "unknown";
+  return {
+    ok: false,
+    error: { code, message: typeof detail === "string" ? detail : `The server returned an error (${response.status}).`, retryable: response.status >= 500 },
+  };
 }
-const unavailable = <T>(): ApiResponse<T> => ({ ok: false, error: { code: "unavailable", message: "Backend integration pending. No image was analyzed or feedback stored.", retryable: false } });
-export const detectionService: DetectionService = {
-  async cameraStatus() { return { ok: true, data: { state: "unavailable", label: "Integration pending" } }; },
-  async analyzeImage() { return unavailable(); },
-  async scanCamera() { return unavailable(); },
-  async verify() { return unavailable(); },
+
+export const detectionService = {
+  /** Upload an image; the server runs the active model and saves the image and its detections. */
+  analyzeImage(image: File) {
+    const body = new FormData();
+    body.append("image", image);
+    return request<AnalysisResult>("/analyze", { method: "POST", body });
+  },
+
+  /** A saved image with its detections and the model version that produced them. */
+  async getResult(imageId: string): Promise<ApiResponse<AnalysisResult>> {
+    const [image, detections] = await Promise.all([
+      request<ImageRecord>(`/images/${encodeURIComponent(imageId)}`),
+      request<DetectionRecord[]>(`/detections?image_id=${encodeURIComponent(imageId)}&limit=500`),
+    ]);
+    if (!image.ok) return image;
+    if (!detections.ok) return detections;
+    const modelId = detections.data.find((d) => d.model_id)?.model_id;
+    const model = modelId ? await request<{ version_number: string }>(`/models/${modelId}`) : null;
+    const sorted = [...detections.data].sort((a, b) => b.confidence - a.confidence);
+    return { ok: true, data: { image: image.data, detections: sorted, model_version: model?.ok ? model.data.version_number : null } };
+  },
+
+  liveCameras: () => request<LiveCamera[]>("/live"),
+  liveCamera: (cameraId: string) => request<LiveCamera>(`/live/${cameraId}`),
+  /** MJPEG stream of the analyzed frames with boxes drawn; use as an <img> src. */
+  liveVideoUrl: (cameraId: string) => `${API_URL}/live/${cameraId}/video`,
+  /** Save the camera's current frame and its detections, like an upload. */
+  scanCamera: (cameraId: string) => request<AnalysisResult>(`/live/${cameraId}/scan`, { method: "POST" }),
+  recentCaptures: (cameraId: string, limit = 6) => request<ImageRecord[]>(`/images?camera_id=${cameraId}&limit=${limit}`),
 };
+
+export const percent = (score: number) => `${(score * 100).toFixed(1)}%`;
+export const titleCase = (label: string) => label.charAt(0).toUpperCase() + label.slice(1);
