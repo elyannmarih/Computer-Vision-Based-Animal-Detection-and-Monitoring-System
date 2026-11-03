@@ -40,32 +40,31 @@ export default function ResultsView() {
 
   const [imageRatio, setImageRatio] = useState(4 / 3);
   const [scenario, setScenario] = useState<Scenario>("detected");
-  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
-  const [feedback, setFeedback] = useState<Record<string, Feedback>>({});
-  const [overallFeedback, setOverallFeedback] =
-    useState<Feedback | null>(null);
+  const [reviewerId, setReviewerId] = useState("");
+  const [feedbackError, setFeedbackError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState<{ id: string; feedback: Record<string, Feedback>; overall: Feedback | null; revealed: Record<string, boolean> }>({ id: "", feedback: {}, overall: null, revealed: {} });
 
   const connected = backendResult?.mode === "backend";
   const result = backendResult ?? demoResult({ url: imageUrl ?? "", name: fileName ?? "image", origin: imageUrl?.startsWith("/demo/") ? "camera-demo" : "upload" }, scenario);
   const detections = result.detections;
+  const empty = { feedback: {} as Record<string, Feedback>, overall: null as Feedback | null, revealed: {} as Record<string, boolean> };
+  const local = draft.id === result.id ? draft : empty;
   const highest = Math.max(0, ...detections.map(d => d.confidence));
   const hasDetections = detections.length > 0;
-  const [reviewerId, setReviewerId] = useState("");
-  const [feedbackError, setFeedbackError] = useState("");
-  const [saving, setSaving] = useState(false);
 
   function changeScenario(value: Scenario) {
     setScenario(value);
-    setRevealed({});
-    setFeedback({});
-    setOverallFeedback(null);
+    setDraft({ id: "local-demo", feedback: {}, overall: null, revealed: {} });
   }
 
   function toggleReveal(id: string) {
-    setRevealed((previous) => ({
-      ...previous,
-      [id]: !previous[id],
-    }));
+    setDraft({
+      id: result.id,
+      feedback: local.feedback,
+      overall: local.overall,
+      revealed: { ...local.revealed, [id]: !local.revealed[id] },
+    });
   }
 
   async function markDetection(id: string | undefined, value: Feedback) {
@@ -78,8 +77,12 @@ export default function ResultsView() {
       setSaving(false);
       if (!response.ok) { setFeedbackError(response.error.message); return; }
     }
-    if (id) setFeedback(previous => ({ ...previous, [id]: value }));
-    else setOverallFeedback(value);
+    setDraft({
+      id: result.id,
+      feedback: id ? { ...local.feedback, [id]: value } : local.feedback,
+      overall: id ? local.overall : value,
+      revealed: local.revealed,
+    });
   }
 
   if (imageId && !backendResult) {
@@ -169,10 +172,10 @@ export default function ResultsView() {
             {detections.length} {result.simulated ? "simulated" : "model"} detections
           </span>
 
-          {/* Illustrative boxes, not model coordinates */}
+          {/* Coordinates are the model's normalized boxes. Areas stay covered until the reviewer reveals them. */}
           {hasDetections &&
             detections.map((detection, index) => {
-              const isRevealed = revealed[detection.id];
+              const isRevealed = local.revealed[detection.id];
 
               return (
                 <div
@@ -182,7 +185,7 @@ export default function ResultsView() {
                       ? "border-2 border-white bg-transparent"
                       : "border-white bg-[#171717]"
                   }`}
-                  aria-label={`Simulated detection ${index + 1}: ${isRevealed ? "revealed" : "hidden"}`}
+                  aria-label={`${result.simulated ? "Simulated detection" : `${titleCase(detection.label)} detection`} ${index + 1}: ${isRevealed ? "revealed" : "hidden"}`}
                   data-testid={`detection-box-${detection.id}`}
                   data-revealed={!!isRevealed}
                   style={{ left: `${detection.box.x * 100}%`, top: `${detection.box.y * 100}%`, width: `${detection.box.width * 100}%`, height: `${detection.box.height * 100}%` }}
@@ -274,8 +277,8 @@ export default function ResultsView() {
 
               <div className="mt-4 space-y-3">
                 {detections.map((detection, index) => {
-                  const isRevealed = revealed[detection.id];
-                  const choice = feedback[detection.id];
+                  const isRevealed = local.revealed[detection.id];
+                  const choice = local.feedback[detection.id] ?? detection.review;
 
                   return (
                     <div
@@ -362,9 +365,9 @@ export default function ResultsView() {
                 Review the result and provide feedback.
               </p>
 
-              {overallFeedback ? (
+              {(local.overall ?? result.review) ? (
                 <p role="status" className="mt-4 rounded-lg bg-[#efefec] p-3 text-center text-xs">
-                  Marked {overallFeedback} {connected ? "(saved to backend)" : "(demo only)"}
+                  Marked {local.overall ?? result.review} {connected ? "(saved to backend)" : "(demo only)"}
                 </p>
               ) : (
                 <div className="mt-4 grid grid-cols-2 gap-2">

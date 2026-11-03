@@ -51,6 +51,26 @@ test("individual verification forwards the result image for ownership validation
 });
 const cameraId = "66666666-6666-4666-8666-666666666666";
 const frameId = "77777777-7777-4777-8777-777777777777";
+const mixedId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const emptyReviewedId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const emptyOpenId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const reviewedDetectionId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+const openDetectionId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+test("saved reviews are restored and unreviewed detections stay unreviewed", async ({ request }) => {
+  const mixed = await (await request.get(`/api/detectra/results/${mixedId}`)).json();
+expect(mixed.data.detections.map((d: { id: string; review?: string }) => ({ id: d.id, review: d.review ?? null }))).toEqual([
+    { id: reviewedDetectionId, review: "correct" },
+    { id: openDetectionId, review: null },
+  ]);
+  expect(mixed.data.review).toBeUndefined();
+  const missed = await (await request.get(`/api/detectra/results/${emptyReviewedId}`)).json();
+  expect(missed.data.detections).toEqual([]);
+  expect(missed.data.review).toBe("incorrect");
+  const open = await (await request.get(`/api/detectra/results/${emptyOpenId}`)).json();
+  expect(open.data.detections).toEqual([]);
+  expect(open.data.review).toBeUndefined();
+  expect(JSON.stringify(mixed.data) + JSON.stringify(missed.data)).not.toMatch(/verified_by_id|target_found/);
+});
 test("saved results load by id with their model version and any class label", async ({ request }) => {
   const upload = await (await request.get(`/api/detectra/results/${imageId}`)).json();
   expect(upload.data).toMatchObject({ id: imageId, mode: "backend", modelVersion: "dog-yolo11s", image: { origin: "upload" } });

@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import random
+import shutil
 import threading
 from dataclasses import dataclass, field
 from io import BytesIO
@@ -106,12 +107,32 @@ def use_model(version: str, remember: bool = False) -> Model:
     return model
 
 
+def weights_path(path: Path) -> str:
+    """A weights path Ultralytics can open.
+
+    Ultralytics strips apostrophes before opening the file, so a folder such as
+    Master's Degree is looked up as Masters Degree and the load fails.
+    """
+    text = str(path)
+    if "'" not in text:
+        return text
+    safe = Path(os.environ.get("LOCALAPPDATA") or os.environ.get("TEMP") or ".") / "detectra-weights" / path.parent.name / path.name
+    safe.parent.mkdir(parents=True, exist_ok=True)
+    if not safe.exists() or safe.stat().st_size != path.stat().st_size:
+        safe.unlink(missing_ok=True)
+        try:
+            os.link(path, safe)
+        except OSError:
+            shutil.copy2(path, safe)
+    return str(safe)
+
+
 def _yolo(model: Model):
     with _lock:
         if model.weights not in _loaded:
             from ultralytics import YOLO
 
-            _loaded[model.weights] = YOLO(model.weights)
+            _loaded[model.weights] = YOLO(weights_path(model.weights))
         return _loaded[model.weights]
 
 

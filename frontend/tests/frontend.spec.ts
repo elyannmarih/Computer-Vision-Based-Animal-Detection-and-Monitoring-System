@@ -153,6 +153,60 @@ test("camera: live view, current detections, recent captures and scan now", asyn
   await page.reload();
   await expect(page.getByRole("heading", { name: /Dog\s*detected/ })).toBeVisible();
 });
+test("saved feedback stays on the reviewed detection only", async ({ page }) => {
+  const image = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const reviewed = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+  const open = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+  const saved = {
+    id: image, mode: "backend", simulated: false, modelVersion: "yolo11n-20261024-110930",
+    image: { url: "/demo/camera-frame.png", name: "Uploaded image", origin: "upload" },
+    detections: [
+      { id: reviewed, label: "lizard", confidence: 0.81, box: { x: 0.1, y: 0.1, width: 0.2, height: 0.2 }, review: "correct" },
+      { id: open, label: "lizard", confidence: 0.42, box: { x: 0.5, y: 0.4, width: 0.2, height: 0.2 } },
+    ],
+  };
+  await page.route(`**/api/detectra/results/${image}`, r => r.fulfill({ json: { ok: true, data: saved } }));
+  await page.goto(`/results?image=${image}`);
+  await expect(page.getByRole("heading", { name: /Lizard\s*detected/ })).toBeVisible();
+  await expect(page.getByText("81.0%", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("42.0%", { exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Detection 1" }).getByRole("status")).toHaveText("Marked correct (saved to backend)");
+  await page.getByRole("button", { name: "Reveal detection 2", exact: true }).click();
+  const second = page.getByRole("group", { name: "Detection 2" });
+  await expect(second.getByRole("button", { name: "Correct", exact: true })).toBeVisible();
+  await expect(second.getByRole("status")).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("group", { name: "Detection 1" }).getByRole("status")).toHaveText("Marked correct (saved to backend)");
+  await expect(page.getByRole("group", { name: "Detection 2" }).getByRole("status")).toHaveCount(0);
+});
+test("a saved no-detection review is shown and an unreviewed one is not", async ({ page }) => {
+  const reviewed = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const open = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const row = (id: string, review?: "incorrect") => ({
+    id, mode: "backend", simulated: false, modelVersion: "yolo11n-20261024-110930",
+    image: { url: "/demo/camera-frame.png", name: "Uploaded image", origin: "upload" },
+    detections: [], ...(review ? { review } : {}),
+  });
+  await page.route(`**/api/detectra/results/${reviewed}`, r => r.fulfill({ json: { ok: true, data: row(reviewed, "incorrect") } }));
+  await page.route(`**/api/detectra/results/${open}`, r => r.fulfill({ json: { ok: true, data: row(open) } }));
+  await page.route("**/api/detectra/reviewers", r => r.fulfill({ json: { ok: true, data: [] } }));
+  await page.goto(`/results?image=${reviewed}`);
+  await expect(page.getByRole("heading", { name: /Nothing\s*detected/ })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Marked incorrect (saved to backend)" })).toBeVisible();
+  await page.goto(`/results?image=${open}`);
+  await expect(page.getByRole("heading", { name: /Nothing\s*detected/ })).toBeVisible();
+  await expect(page.getByText("Marked incorrect (saved to backend)")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Correct", exact: true })).toBeDisabled();
+});
+test("camera shows a reconnecting error and disables scanning", async ({ page }) => {
+  await page.route("**/api/detectra/live", r => r.fulfill({ json: { ok: true, data: [{ ...liveCamera, connected: false, error: "Can't open the camera stream; retrying.", detections: [], fps: null, width: null, height: null }] } }));
+  await page.route(`**/api/detectra/live/${cameraId}/captures`, r => r.fulfill({ json: { ok: true, data: [] } }));
+  await page.goto("/camera");
+  await expect(page.getByText("Reconnecting…")).toBeVisible();
+  await expect(page.getByText("Can't open the camera stream; retrying.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Scan now", exact: true })).toBeDisabled();
+  expect(await page.content()).not.toMatch(/rtsp:\/\//i);
+});
 test("results link for a missing image explains the error", async ({ page }) => {
   await page.route("**/api/detectra/results/*", r => r.fulfill({ status: 404, json: { ok: false, error: { code: "invalid-input", message: "This record could not be found. Submit the image again." } } }));
   await page.goto("/results?image=99999999-9999-4999-8999-999999999999");

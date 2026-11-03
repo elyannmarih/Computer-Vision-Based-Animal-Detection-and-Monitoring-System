@@ -5,11 +5,13 @@ export type ImageSource = { url: string; name: string; origin: "upload" | "camer
 /** Coordinates normalized to the full, uncropped image; values in [0, 1]. */
 export type BoundingBox = { x: number; y: number; width: number; height: number };
 export type ConfidenceScore = number; // Fraction in [0, 1], validated by the server adapter.
-/** label is the class the model reported, e.g. "lizard", "dog" or "deer". */
-export type Detection = { id: string; label: string; confidence: ConfidenceScore; box: BoundingBox };
+/** label is the class the model reported, e.g. "lizard", "dog" or "deer". review is set only after feedback was saved. */
+export type Detection = { id: string; label: string; confidence: ConfidenceScore; box: BoundingBox; review?: Verification };
 export type DetectionResult = {
   id: string; image: ImageSource; simulated: boolean; mode?: "backend" | "local-demo"; modelVersion?: string;
   capturedAt?: string; detections: Detection[];
+  /** Whole-image verdict, used when the model found nothing. */
+  review?: Verification;
 };
 export type ImageAnalysisRequest = { image: File };
 export type CameraScanRequest = { cameraId: string }; // Opaque backend identifier only.

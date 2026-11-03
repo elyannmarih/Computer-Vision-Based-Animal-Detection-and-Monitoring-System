@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { Upload, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { IMAGE_TYPES, MAX_IMAGE_SIZE } from "@/lib/image-rules";
+import { acceptedImage, MAX_IMAGE_SIZE } from "@/lib/image-rules";
 import { detectionService } from "@/lib/detection-service";
 import { demoDelay } from "@/lib/demo-data";
 import { useDemoImage } from "@/components/demo-image-provider";
@@ -59,12 +59,13 @@ export default function UploadPage() {
 
     if (!selected) return;
 
-    if (!IMAGE_TYPES.has(selected.type)) {
+    const file = acceptedImage(selected);
+    if (!file) {
       setError("Please select a JPG, PNG, or WEBP image.");
       return;
     }
 
-    if (selected.size > MAX_IMAGE_SIZE) {
+    if (file.size > MAX_IMAGE_SIZE) {
       setError("Image size must not exceed 10 MB.");
       return;
     }
@@ -73,17 +74,17 @@ export default function UploadPage() {
 
     const selection = selectionRef.current;
     try {
-      const bitmap = await createImageBitmap(selected);
+      const bitmap = await createImageBitmap(file);
       bitmap.close();
     } catch {
       if (selection === selectionRef.current) setError("This image could not be opened. Choose a valid image.");
       return;
     }
     if (selection !== selectionRef.current) return;
-    const url = URL.createObjectURL(selected);
+    const url = URL.createObjectURL(file);
     objectUrlRef.current = url;
 
-    setFile(selected);
+    setFile(file);
     setPreview(url);
   }
 

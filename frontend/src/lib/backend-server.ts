@@ -58,6 +58,9 @@ function timestamp(value: unknown): string {
   return new Date(value).toISOString();
 }
 const optional = <T>(value: unknown, parse: (v: unknown) => T): T | null => (value === null || value === undefined ? null : parse(value));
+function storedReview(value: unknown): "correct" | "incorrect" | undefined {
+  return value === "correct" || value === "incorrect" ? value : undefined;
+}
 function count(value: unknown): number {
   if (typeof value !== "number" || !Number.isInteger(value) || value < 0) throw new Error("Invalid count");
   return value;
@@ -82,14 +85,17 @@ export function analysisResult(value: unknown, name: string): DetectionResult {
     seen.add(detectionId);
     const box = { x: unit(d.x_min), y: unit(d.y_min), width: unit(d.width, true), height: unit(d.height, true) };
     if (box.x + box.width > 1.00001 || box.y + box.height > 1.00001) throw new Error("Box outside image");
-    return { id: detectionId, label: label(d.class_label), confidence: unit(d.confidence), box };
+    // A stored verdict is attached only for a detection the database already marked reviewed.
+    const review = d.human_verified === true ? storedReview(d.review) : undefined;
+    return { id: detectionId, label: label(d.class_label), confidence: unit(d.confidence), box, ...(review ? { review } : {}) };
   }).sort((a, b) => b.confidence - a.confidence);
   const fromCamera = image.camera_id !== null && image.camera_id !== undefined;
   if (fromCamera) id(image.camera_id);
+  const review = !detections.length ? storedReview(data.review) : undefined;
   return {
     id: imageId, image: { url: `/api/detectra/images/${path}`, name, origin: fromCamera ? "camera" : "upload" },
     mode: "backend", modelVersion: modelVersion ?? undefined, simulated: modelVersion?.startsWith("stub-") ?? false,
-    capturedAt: optional(image.captured_at, timestamp) ?? undefined, detections,
+    capturedAt: optional(image.captured_at, timestamp) ?? undefined, detections, ...(review ? { review } : {}),
   };
 }
 
@@ -110,8 +116,35 @@ export async function resultFromRecords(imageId: string): Promise<Response> {
     if (model.ok) modelVersion = version(record(await model.json()).version_number);
   }
   const imageRow = record(await image.json());
+  const lookups = new Map<string, Promise<boolean | undefined>>();
+  const targetFound = (verificationId: unknown) => {
+    if (typeof verificationId !== "string" || !UUID_PATTERN.test(verificationId)) return Promise.resolve(undefined);
+    let pending = lookups.get(verificationId);
+    if (!pending) {
+      pending = backendFetch(`/human-verifications/${verificationId}`).then(async (response) => {
+        if (!response.ok) return undefined;
+        const saved = record(await response.json());
+        return typeof saved.target_found === "boolean" ? saved.target_found : undefined;
+      }).catch(() => undefined);
+      lookups.set(verificationId, pending);
+    }
+    return pending;
+  };
+  // Per-detection target_found true means Correct. A whole-image review uses the opposite mapping:
+  // target_found true means the "nothing detected" result was Incorrect.
+  const enriched = await Promise.all(rows.map(async (value) => {
+    const row = record(value);
+    if (row.human_verified !== true) return row;
+    const found = await targetFound(row.verification_id);
+    return found === undefined ? row : { ...row, review: found ? "correct" : "incorrect" };
+  }));
+  let review: "correct" | "incorrect" | undefined;
+  if (!enriched.length && imageRow.human_verified === true) {
+    const found = await targetFound(imageRow.verification_id);
+    if (found !== undefined) review = found ? "incorrect" : "correct";
+  }
   const name = imageRow.camera_id ? "Camera frame" : "Uploaded image";
-  return ok(analysisResult({ image: imageRow, detections: rows, model_version: modelVersion }, name));
+  return ok(analysisResult({ image: imageRow, detections: enriched, model_version: modelVersion, review }, name));
 }
 
 export function liveCamera(value: unknown): LiveCamera {

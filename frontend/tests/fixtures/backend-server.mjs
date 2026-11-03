@@ -37,6 +37,17 @@ const server = http.createServer(async (req, res) => {
   if (req.url === `/images/${badLabelId}`) return send(res, 200, imageRow(badLabelId, imagePath, null));
   if (req.url === `/detections?image_id=${imageId}&limit=500`) return send(res, 200, [{ detection_id: detectionId, image_id: imageId, model_id: modelId, class_label: "lizard", confidence: 0.948, x_min: 0.17, y_min: 0.41, width: 0.22, height: 0.25 }]);
   if (req.url === `/detections?image_id=${frameId}&limit=500`) return send(res, 200, [dogDetection]);
+  if (req.url === `/images/${mixedId}`) return send(res, 200, imageRow(mixedId, imagePath, null, { number_detections: 2 }));
+  if (req.url === `/detections?image_id=${mixedId}&limit=500`) return send(res, 200, [
+    { detection_id: reviewedDetectionId, image_id: mixedId, model_id: modelId, class_label: "lizard", confidence: 0.81, x_min: 0.1, y_min: 0.1, width: 0.2, height: 0.2, human_verified: true, verification_id: correctVerificationId },
+    { detection_id: openDetectionId, image_id: mixedId, model_id: modelId, class_label: "lizard", confidence: 0.42, x_min: 0.5, y_min: 0.4, width: 0.2, height: 0.2, human_verified: false },
+  ]);
+  if (req.url === `/images/${emptyReviewedId}`) return send(res, 200, imageRow(emptyReviewedId, imagePath, null, { number_detections: 0, human_verified: true, verification_id: missedVerificationId }));
+  if (req.url === `/detections?image_id=${emptyReviewedId}&limit=500`) return send(res, 200, []);
+  if (req.url === `/images/${emptyOpenId}`) return send(res, 200, imageRow(emptyOpenId, imagePath, null, { number_detections: 0, human_verified: false }));
+  if (req.url === `/detections?image_id=${emptyOpenId}&limit=500`) return send(res, 200, []);
+  if (req.url === `/human-verifications/${correctVerificationId}`) return send(res, 200, { verification_id: correctVerificationId, verified_by_id: reviewerId, target_found: true });
+  if (req.url === `/human-verifications/${missedVerificationId}`) return send(res, 200, { verification_id: missedVerificationId, verified_by_id: reviewerId, target_found: true });
   if (req.url === `/detections?image_id=${badLabelId}&limit=500`) return send(res, 200, [{ ...dogDetection, image_id: badLabelId, class_label: "<img src=x onerror=alert(1)>" }]);
   if (req.url === `/models/${modelId}`) return send(res, 200, { model_id: modelId, version_number: "dog-yolo11s", precision_rating: null });
 
@@ -67,8 +78,15 @@ const badLabelId = "99999999-9999-4999-8999-999999999999";
 const modelId = "55555555-5555-4555-8555-555555555555";
 const framePath = "images/2026/10/31/77777777777777777777777777777777.jpg";
 const dogDetection = { detection_id: "88888888-8888-4888-8888-888888888888", image_id: frameId, model_id: modelId, class_label: "dog", confidence: 0.73, x_min: 0.2, y_min: 0.2, width: 0.3, height: 0.3 };
-function imageRow(id, path, camera) {
-  return { image_id: id, camera_id: camera, image_url: `http://127.0.0.1:8101/uploads/${path}`, captured_at: "2026-10-31T16:00:00Z", uploaded_at: "2026-10-31T16:00:00Z", number_detections: 1 };
+const mixedId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const emptyReviewedId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const emptyOpenId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const reviewedDetectionId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+const openDetectionId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+const correctVerificationId = "44444444-4444-4444-8444-444444444441";
+const missedVerificationId = "44444444-4444-4444-8444-444444444442";
+function imageRow(id, path, camera, extra = {}) {
+  return { image_id: id, camera_id: camera, image_url: `http://127.0.0.1:8101/uploads/${path}`, captured_at: "2026-10-31T16:00:00Z", uploaded_at: "2026-10-31T16:00:00Z", number_detections: 1, human_verified: false, ...extra };
 }
 let activeModel = "yolo11n-test";
 function models() {
