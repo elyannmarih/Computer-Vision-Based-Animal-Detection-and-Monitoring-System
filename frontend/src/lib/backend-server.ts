@@ -175,6 +175,7 @@ export function detectorModel(value: unknown): DetectorModel {
   if (typeof m.title !== "string" || !Array.isArray(m.classes) || typeof m.active !== "boolean") throw new Error("Invalid model");
   return {
     version: version(m.version), title: m.title.slice(0, 80), classes: m.classes.map(label),
+    selectedClasses: (Array.isArray(m.selected_classes) ? m.selected_classes : m.classes).map(label),
     precision: optional(m.precision, (v) => unit(v)), active: m.active,
   };
 }

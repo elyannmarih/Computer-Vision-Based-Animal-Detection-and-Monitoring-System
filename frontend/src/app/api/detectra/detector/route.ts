@@ -1,4 +1,4 @@
-import { backendFetch, backendFailure, detectorModel, failure, MODEL_VERSION_PATTERN, ok } from "@/lib/backend-server";
+import { backendFetch, backendFailure, detectorModel, failure, LABEL_PATTERN, MODEL_VERSION_PATTERN, ok } from "@/lib/backend-server";
 /** The detector models on the backend, with the one in use marked active. */
 export async function GET() {
   try {
@@ -19,4 +19,18 @@ export async function PUT(request: Request) {
     if (!response.ok) return response.status === 404 ? failure("That model is no longer available. Reload the list.", 404, "invalid-input") : backendFailure(response.status);
     return ok(detectorModel(await response.json()));
   } catch { return failure("The model switch was not confirmed. Reload the list to see which model is active.", 502); }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    let body;
+    try { body = await request.json(); } catch { return failure("Invalid species selection.", 400, "invalid-input"); }
+    if (!body || typeof body.version !== "string" || !MODEL_VERSION_PATTERN.test(body.version)
+      || !Array.isArray(body.classes) || body.classes.length < 1 || body.classes.length > 100
+      || !body.classes.every((c: unknown) => typeof c === "string" && LABEL_PATTERN.test(c))
+      || new Set(body.classes).size !== body.classes.length) return failure("Choose one or more species.", 400, "invalid-input");
+    const response = await backendFetch("/detector", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: body.version, classes: body.classes }) });
+    if (!response.ok) return failure("Could not apply species. Reload the detector and try again.", response.status === 422 ? 422 : 502);
+    return ok(detectorModel(await response.json()));
+  } catch { return failure("Species selection was not confirmed. Reload to check the active selection.", 502); }
 }

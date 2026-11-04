@@ -235,3 +235,5 @@ backend/training/*.log
 
 # The detector model last picked in the app (each machine keeps its own)
 backend/models/selected.txt
+backend/models/selected-classes.json
+backend/models/selected-classes.tmp

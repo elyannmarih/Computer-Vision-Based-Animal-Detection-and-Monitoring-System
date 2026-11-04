@@ -32,4 +32,4 @@ export type LiveCamera = {
 /** A saved camera frame, for the recent captures list. */
 export type Capture = { id: string; capturedAt: string; detections: number };
 /** A detector model the backend can switch to. */
-export type DetectorModel = { version: string; title: string; classes: string[]; precision: number | null; active: boolean };
+export type DetectorModel = { version: string; title: string; classes: string[]; selectedClasses: string[]; precision: number | null; active: boolean };

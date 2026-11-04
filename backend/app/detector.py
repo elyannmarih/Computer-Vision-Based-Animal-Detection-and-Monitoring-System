@@ -35,6 +35,36 @@ TARGET_LABEL = "lizard"
 MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
 SELECTED_FILE = MODELS_DIR / "selected.txt"  # the model last picked in the app (not in git)
 CONFIDENCE = float(os.getenv("LIZARD_CONFIDENCE", "0.25"))
+CLASSES_FILE = MODELS_DIR / "selected-classes.json"
+try:
+    _selected_classes = json.loads(CLASSES_FILE.read_text()) if CLASSES_FILE.exists() else {}
+    if not isinstance(_selected_classes, dict):
+        _selected_classes = {}
+except (OSError, ValueError):
+    _selected_classes = {}
+_selection_lock = threading.Lock()
+
+
+def selected_classes(model):
+    saved = _selected_classes.get(model.version)
+    if not isinstance(saved, list) or not saved or not all(c in model.classes for c in saved):
+        return model.classes
+    return list(saved)
+
+
+def select_classes(version: str, classes: list[str]):
+    with _selection_lock:
+        model = active()
+        if version != model.version:
+            raise ValueError("The active model changed; reload the selection")
+        if not classes or len(set(classes)) != len(classes) or not set(classes).issubset(model.classes):
+            raise ValueError("Choose at least one supported class, without duplicates")
+        updated = {**_selected_classes, version: sorted(classes)}
+        temporary = CLASSES_FILE.with_suffix(".tmp")
+        temporary.write_text(json.dumps(updated, indent=2) + "\n")
+        temporary.replace(CLASSES_FILE)
+        _selected_classes.update(updated)
+        return model
 
 
 @dataclass(frozen=True)
@@ -171,7 +201,12 @@ def _predict(picture, model: Model) -> list[Detection]:
     # e.g. Open Images' Man/Woman/Boy/Girl -> person). Overlapping boxes are merged across those
     # classes, so one person isn't reported as both "Man" and "Person".
     class_map = model.info.get("class_map")
-    options = {"classes": [i for i, n in yolo.names.items() if n in class_map], "agnostic_nms": True} if class_map else {}
+    selected = set(selected_classes(model))
+    class_ids = [i for i, n in yolo.names.items()
+                 if (class_map.get(n) if class_map else label(n)) in selected]
+    if not class_ids:
+        return []
+    options = {"classes": class_ids, "agnostic_nms": True} if class_map else {"classes": class_ids}
     with _lock:
         result = yolo.predict(picture, conf=CONFIDENCE, verbose=False, **options)[0]
 

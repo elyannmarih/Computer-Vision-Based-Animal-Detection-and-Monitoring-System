@@ -223,6 +223,7 @@ test("model picker shows the active model and switches it", async ({ page }) => 
   });
   await page.goto("/");
   const picker = page.locator(test.info().project.name.startsWith("mobile") ? "#model-picker-mobile" : "#model-picker-sidebar");
+  await picker.locator("xpath=..").locator("summary").click();
   await expect(picker).toHaveValue("yolo11n-test");
   await expect(page.getByText("Detecting: Lizards")).toBeVisible();
   const switched = page.waitForRequest(r => r.url().endsWith("/api/detectra/detector") && r.method() === "PUT");
@@ -230,7 +231,7 @@ test("model picker shows the active model and switches it", async ({ page }) => 
   expect((await switched).postDataJSON()).toEqual({ version: "dog-yolo11s" });
   await expect(picker).toHaveValue("dog-yolo11s");
   await expect(page.getByText("Detecting: Dogs")).toBeVisible();
-  await expect(picker.locator("xpath=..").getByText("Detects: Dog")).toBeVisible();
+  await expect(picker.locator("xpath=../..").getByText("1 selected · Dogs")).toBeVisible();
 });
 test("guide includes six steps and working links", async ({ page }) => {
   await page.goto("/how-to-use");

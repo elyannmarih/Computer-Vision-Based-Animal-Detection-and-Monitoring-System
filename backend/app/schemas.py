@@ -255,7 +255,13 @@ class DetectorModel(BaseModel):
     classes: list[str]
     precision: Unit | None = None
     active: bool
+    selected_classes: list[str] = []
 
 
 class DetectorSelect(BaseModel):
     version: str
+
+
+class DetectorClasses(BaseModel):
+    version: str
+    classes: list[str] = Field(min_length=1, max_length=100)

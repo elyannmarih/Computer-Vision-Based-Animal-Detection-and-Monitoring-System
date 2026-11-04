@@ -14,6 +14,7 @@ export interface DetectionService {
   captures(cameraId: string): Promise<ApiResponse<Capture[]>>;
   detectorModels(): Promise<ApiResponse<DetectorModel[]>>;
   selectDetectorModel(version: string): Promise<ApiResponse<DetectorModel>>;
+  selectClasses(version: string, classes: string[]): Promise<ApiResponse<DetectorModel>>;
   verify(request: VerificationRequest): Promise<ApiResponse<{ verificationId: string }>>;
   reviewers(): Promise<ApiResponse<Reviewer[]>>;
 }
@@ -47,6 +48,9 @@ export const detectionService: DetectionService = {
   async detectorModels() { return call("detector", (value): value is DetectorModel[] => Array.isArray(value) && value.every(isModel)); },
   async selectDetectorModel(version) {
     return call("detector", isModel, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version }) });
+  },
+  async selectClasses(version, classes) {
+    return call("detector", isModel, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version, classes }) });
   },
   async verify(request) {
     return call("verify", (value): value is { verificationId: string } => record(value) && typeof value.verificationId === "string", {

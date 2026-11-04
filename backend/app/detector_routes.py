@@ -11,6 +11,7 @@ def describe(model: detector.Model) -> dict:
     return {
         "version": model.version, "title": model.title, "classes": model.classes,
         "precision": model.precision, "active": model.version == detector.active().version,
+        "selected_classes": detector.selected_classes(model),
     }
 
 
@@ -18,6 +19,14 @@ def describe(model: detector.Model) -> dict:
 def list_models():
     """Every model in backend/models/, with the one in use marked active."""
     return [describe(m) for m in detector.available_models()]
+
+
+@router.patch("", response_model=s.DetectorModel)
+def select_classes(body: s.DetectorClasses):
+    try:
+        return describe(detector.select_classes(body.version, body.classes))
+    except ValueError as error:
+        raise HTTPException(422, str(error))
 
 
 @router.put("", response_model=s.DetectorModel)

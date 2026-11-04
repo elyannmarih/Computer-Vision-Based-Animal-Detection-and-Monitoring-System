@@ -61,6 +61,15 @@ Database constraint violations (bad foreign key, NOT NULL, CHECK) return `409` w
 
 ## Detector
 
+The main interface offers **Detect species** checkboxes: select one or more supported
+classes, or all classes. `PATCH /detector` accepts `{ "version": "<active model>",
+"classes": ["dog", "lizard"] }`. Selection is shared by all viewers and applies to
+subsequent live frames, scans and uploads; existing saved results are unchanged.
+YOLO receives only the selected class IDs, including aliases mapped to the same label.
+Selections persist per model in ignored `backend/models/selected-classes.json`.
+At least one class is required. Evan's model picker remains under **Advanced**;
+all existing weights, training scripts and model-switching APIs are preserved.
+
 `app/detector.py` runs an Ultralytics YOLO model and keeps boxes scoring at least `LIZARD_CONFIDENCE` (default 0.25). Every detection counts as a target (`detector.is_target`), people included.
 
 Each model has its own folder, and the folder name is the version recorded in the `models` table:
