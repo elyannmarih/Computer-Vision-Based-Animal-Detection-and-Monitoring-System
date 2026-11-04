@@ -68,6 +68,7 @@ export default function CameraPage() {
       setScanning(false);
       return;
     }
+    setScanning(false);
     router.push(`/results?image=${response.data.id}`);
   }
 
