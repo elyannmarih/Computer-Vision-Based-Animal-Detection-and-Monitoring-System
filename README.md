@@ -103,8 +103,10 @@ After installing the dependencies, run these commands from the project root:
 
 ```powershell
 $python = "$env:LOCALAPPDATA/Detectra/venv/Scripts/python.exe"
+& $python -m pip install -r backend/requirements-dev.txt
 $env:PYTHONPATH = (Resolve-Path backend).Path
 & $python -m unittest discover -s backend/tests
+& $python -m mypy --config-file backend/mypy.ini
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 npm --prefix frontend run build
@@ -116,11 +118,12 @@ For browser tests:
 cd frontend
 npx playwright install chromium webkit
 npm run test:e2e
+cd ..
 ```
 
 Playwright uses local test servers on ports 8101 and 3100 with simulated API responses. These tests do not write to the production database. They check uploads, API responses, results, human review, category selection, and Scan Now in desktop/mobile Chromium and WebKit. We still need field testing to check how the system behaves with a physical camera.
 
-The database setup tests also run against real PostgreSQL. Provide a separate local `detectra_test` database and a test role with `CREATEDB` permission, then run:
+The integration suite runs against real PostgreSQL and the bundled YOLO weights. Provide a separate local `detectra_test` database and a test role with `CREATEDB` permission, then run from the project root:
 
 ```powershell
 createuser --host=127.0.0.1 --username=postgres --createdb --pwprompt detectra_test
@@ -130,7 +133,19 @@ $env:PYTHONPATH = (Resolve-Path backend).Path
 & $python -m unittest discover -s backend/tests/integration -v
 ```
 
-The suite creates a randomly named test database and removes only that database afterward. Individual tests roll back their changes. It checks schema creation, repeat runs, sample data, foreign keys, numeric checks, response schemas, and preservation of existing records and files. Missing or unsafe test configuration fails the integration suite rather than silently skipping it. Results from executed Phase III checks are recorded in `docs/phase-3-test-results.json`.
+The suite creates randomly named test databases and removes only those databases afterward. Schema tests roll back each transaction; application tests commit to a disposable database so we can check persistence from a separate connection. They cover setup and sample data, real uploads and predictions, rejected files, storage cleanup after a failed transaction, feedback revisions, concurrent reviews, CRUD validation, and camera-frame scans. Application tests disable `.env` loading and physical cameras, replace storage with a temporary directory, and isolate model preferences. Missing or unsafe test configuration fails the suite rather than silently skipping it.
+
+For the complete browser workflow, keep the same test database configuration and run after building the frontend and installing Playwright browsers:
+
+```powershell
+& $python backend/tests/run_system.py
+```
+
+This runner starts FastAPI on port 8102 and Next.js on port 3101. Its five Chromium tests exercise real YOLO uploads, blank images, saved feedback after reload, species preferences, and Scan Now from a generated local video. No API responses or model predictions are mocked in this suite. The runner removes its temporary database, video, uploads, and preferences when it exits normally or a test fails. After an interrupted or force-killed run, inspect any remaining local `detectra_test_<random id>` database before removing it. Run the browser suites sequentially because they share Playwright's report directory.
+
+The positive fixture is the NASA astronaut image distributed by scikit-image; its source, public-domain attribution, and SHA-256 are recorded in `backend/tests/fixtures/provenance.json`. It checks the application workflow, not independent detector accuracy. Physical RTSP capture and field testing are still pending. On November 5, 2026, the configured camera did not respond to a TCP-only connection check; no real frames were captured or saved.
+
+Mypy checks the API and development database scripts, including unannotated function bodies. It is not a strict typing guarantee for every dependency: Ultralytics and Boto3 are excluded from dependency inspection because their integration does not provide usable type information. The offline evaluation script is covered by its unit tests, not this mypy configuration. Executed Phase III checks are recorded in `docs/phase-3-test-results.json`.
 
 ## Evaluating the detector
 

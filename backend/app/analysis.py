@@ -58,7 +58,7 @@ def analyze(
 
     model = detector.active()  # held for the request, in case the active model is switched meanwhile
     found = detector.detect(data, model)
-    return record(conn, data, image.content_type, str(request.base_url), model, found, camera_id, captured_at)
+    return record(conn, data, image.content_type or "", str(request.base_url), model, found, camera_id, captured_at)
 
 
 def record(
@@ -143,6 +143,7 @@ def verify_detection(detection_id: UUID, body: s.DetectionVerification, conn: Co
         "INSERT INTO human_verifications (verified_by_id, target_found) VALUES (%s, %s) RETURNING *",
         [body.verified_by_id, target_found],
     ).fetchone()
+    assert verification is not None  # INSERT ... RETURNING always returns the inserted row.
     conn.execute(
         "UPDATE detections SET human_verified = true, verification_id = %s WHERE detection_id = %s",
         [verification["verification_id"], detection_id],

@@ -12,6 +12,7 @@ import threading
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from PIL import Image, ImageOps
@@ -103,7 +104,7 @@ def load_model(version: str) -> Model:
 
 
 _lock = threading.Lock()  # Ultralytics predictors aren't thread-safe; FastAPI runs requests in a thread pool
-_loaded = {}  # weights path -> YOLO, so switching back and forth doesn't reload
+_loaded: dict[Path, Any] = {}  # weights path -> YOLO, so switching back and forth doesn't reload
 
 
 def active() -> Model:
@@ -145,6 +146,8 @@ def weights_path(path: Path) -> str:
 
 
 def _yolo(model: Model):
+    if model.weights is None:
+        raise ValueError("Detection requires real model weights")
     with _lock:
         if model.weights not in _loaded:
             from ultralytics import YOLO
@@ -220,6 +223,7 @@ def _read(path: Path) -> str | None:
 
 def _startup_model() -> Model:
     """LIZARD_MODEL, else the last model picked in the app (models/selected.txt), else models/active.txt."""
+    name: str | None
     if name := (os.getenv("LIZARD_MODEL") or "").strip():
         return load_model(name)  # a configured model that doesn't exist is an error, not fake detections
     if name := _read(SELECTED_FILE):

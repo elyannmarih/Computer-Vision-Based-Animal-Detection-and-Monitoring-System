@@ -7,14 +7,16 @@ import os
 from pathlib import Path
 import re
 from collections.abc import Iterator
+from typing import Any
 
 import psycopg
-from psycopg.conninfo import conninfo_to_dict
+from psycopg.conninfo import conninfo_to_dict, make_conninfo
 from psycopg.rows import dict_row
 
 TABLES = {'cameras', 'models', 'trusted_persons', 'human_verifications', 'images', 'detections'}
 SCHEMA_MARKER = 'Detectra development schema v1'
 SCHEMA_PATH = Path(__file__).parent / 'database/schema.sql'
+DatabaseConnection = psycopg.Connection[dict[str, Any]]
 
 
 class DevelopmentDatabaseError(ValueError):
@@ -25,7 +27,7 @@ def connection_settings(value: str | None) -> dict[str, str]:
     if not value:
         raise DevelopmentDatabaseError('Set DETECTRA_DEV_DATABASE_URL explicitly; DATABASE_URL is not used.')
     try:
-        settings = conninfo_to_dict(value)
+        settings = {key: str(item) for key, item in conninfo_to_dict(value).items() if item is not None}
     except psycopg.Error:
         raise DevelopmentDatabaseError('Invalid development database connection settings.') from None
     allowed = {'host', 'port', 'dbname', 'user', 'password', 'sslmode'}
@@ -41,12 +43,12 @@ def connection_settings(value: str | None) -> dict[str, str]:
 
 
 @contextmanager
-def connect_development() -> Iterator[psycopg.Connection]:
+def connect_development() -> Iterator[DatabaseConnection]:
     settings = connection_settings(os.environ.get('DETECTRA_DEV_DATABASE_URL'))
     # Pass an explicit hostaddr as well, so libpq environment settings cannot redirect localhost.
     address = '::1' if settings['host'] == '::1' else '127.0.0.1'
     try:
-        with psycopg.connect(**settings, hostaddr=address, connect_timeout=5,
+        with psycopg.connect(make_conninfo(**settings), hostaddr=address, connect_timeout=5,
                              options='-c search_path=public -c lock_timeout=5000 -c statement_timeout=30000',
                              row_factory=dict_row) as connection:
             connection.execute('SELECT pg_advisory_xact_lock(553003)')
@@ -55,12 +57,12 @@ def connect_development() -> Iterator[psycopg.Connection]:
         raise DevelopmentDatabaseError('Development database operation failed. Check the local server, credentials, permissions and schema; no partial transaction was committed.') from None
 
 
-def existing_tables(connection: psycopg.Connection) -> set[str]:
+def existing_tables(connection: DatabaseConnection) -> set[str]:
     return {row['tablename'] for row in connection.execute(
         "SELECT tablename FROM pg_tables WHERE schemaname='public'").fetchall()}
 
 
-def require_initialized(connection: psycopg.Connection) -> None:
+def require_initialized(connection: DatabaseConnection) -> None:
     if not TABLES.issubset(existing_tables(connection)):
         raise DevelopmentDatabaseError('Initialize an empty development database before loading sample data.')
     marker = connection.execute("SELECT obj_description('public.cameras'::regclass) AS marker").fetchone()
@@ -68,7 +70,7 @@ def require_initialized(connection: psycopg.Connection) -> None:
         raise DevelopmentDatabaseError('This schema was not created by Detectra development setup; existing data was left unchanged.')
 
 
-def initialize(connection: psycopg.Connection) -> bool:
+def initialize(connection: DatabaseConnection) -> bool:
     if existing_tables(connection):
         require_initialized(connection)
         return False
