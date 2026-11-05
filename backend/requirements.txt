@@ -10,3 +10,5 @@ ultralytics==8.4.201
 pi-heif==1.4.0
 torch==2.15.0
 torchvision==0.29.2
+# Keep PyTorch's packaging dependency above the audited vulnerable releases.
+setuptools>=84.1.0

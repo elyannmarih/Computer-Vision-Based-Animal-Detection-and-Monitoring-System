@@ -925,7 +925,7 @@
       "milestone": "Automated Docker delivery",
       "base_commit": "25368a52dd48d8b8e0fa0b64d6796d1e940f3a30",
       "branch": "codex/phase-3-implementation",
-      "status": "implemented and locally verified; awaiting commit approval",
+      "status": "committed with user approval; not pushed",
       "completed_at_utc": "2026-11-05T20:49:13.197408+00:00",
       "validation_environment": "Windows host with Docker Desktop running Linux amd64 containers",
       "source_smoke": {
@@ -1029,6 +1029,405 @@
         "The local archive is a development preview, not an artifact from a committed release.",
         "Only Linux amd64 was validated; no physical camera, public deployment, image registry or GitHub Release publication was used.",
         "Final Phase III documentation, security and collaboration review remain for the next milestone."
+      ],
+      "commit": "3bebf2b"
+    },
+    {
+      "milestone": "Final documentation and publication audit",
+      "base_commit": "3bebf2bf832431add9937e490997629fca0e9049",
+      "branch": "codex/phase-3-implementation",
+      "status": "approved for commit; not pushed",
+      "completed_at_utc": "2026-11-05T21:03:54.800287+00:00",
+      "runs": [
+        {
+          "command": "python -m unittest discover -s backend/tests -v",
+          "completed_at_utc": "2026-11-05T20:59:25.692777+00:00",
+          "exit_code": 0,
+          "log_sha256": "2625877fae29a35d9e4c03129889488a022577bce19eeb03b3f000916729dfd6",
+          "passed": 47,
+          "failed": 0,
+          "skipped": 0,
+          "test_names": [
+            "test_analysis.AnalysisTransactionTests.test_cleanup_failure_preserves_original_commit_error",
+            "test_analysis.AnalysisTransactionTests.test_commit_completes_before_success_is_returned",
+            "test_analysis.AnalysisTransactionTests.test_commit_failure_rolls_back_and_removes_image",
+            "test_analysis.AnalysisTransactionTests.test_query_failure_rolls_back_and_cleans_up",
+            "test_analysis.AnalysisTransactionTests.test_uncertain_commit_keeps_image_in_case_the_database_committed",
+            "test_camera_url.CameraUrlTests.test_capture_exception_does_not_kill_reconnection_or_expose_url",
+            "test_camera_url.CameraUrlTests.test_credentials_are_removed_and_never_appear_in_status",
+            "test_camera_url.CameraUrlTests.test_failed_capture_is_released_and_retried",
+            "test_camera_url.CameraUrlTests.test_file_path_and_url_without_credentials_stay_stable",
+            "test_camera_url.CameraUrlTests.test_ipv6_address_stays_valid_after_credentials_are_removed",
+            "test_camera_url.CameraUrlTests.test_query_tokens_and_fragments_are_not_published",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_application_database_url_is_never_a_fallback",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_cli_refuses_missing_configuration_without_loading_dotenv",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_connection_failure_returns_a_safe_error",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_database_name_must_identify_development_or_testing",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_invalid_connection_string_does_not_expose_its_value",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_local_development_and_test_targets_are_accepted",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_missing_user_is_rejected",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_remote_or_implicit_hosts_are_rejected",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_service_hostaddr_and_arbitrary_options_are_rejected",
+            "test_lifespan.LifespanTests.test_pool_closes_when_camera_stop_fails",
+            "test_lifespan.LifespanTests.test_request_failure_still_closes_resources",
+            "test_lifespan.LifespanTests.test_startup_failure_closes_pool_and_stops_partial_camera_start",
+            "test_model_configuration.ModelConfigurationTests.test_bundled_default_is_the_only_distributed_model",
+            "test_model_configuration.ModelConfigurationTests.test_missing_configuration_never_generates_fake_detections",
+            "test_model_configuration.ModelConfigurationTests.test_removed_local_model_falls_back_to_bundled_default",
+            "test_offline_evaluation.OfflineEvaluationTests.test_complete_negative_scores_every_supported_class",
+            "test_offline_evaluation.OfflineEvaluationTests.test_duplicate_predictions_cannot_match_one_animal_twice",
+            "test_offline_evaluation.OfflineEvaluationTests.test_empty_scene_with_no_predictions_has_no_counts",
+            "test_offline_evaluation.OfflineEvaluationTests.test_nonoverlapping_prediction_does_not_match",
+            "test_offline_evaluation.OfflineEvaluationTests.test_partial_annotations_require_explicit_opt_in",
+            "test_offline_evaluation.OfflineEvaluationTests.test_wrong_species_is_false_positive_and_missed_target",
+            "test_species_selection.SpeciesSelectionTests.test_default_includes_all_supported_classes",
+            "test_species_selection.SpeciesSelectionTests.test_empty_selection_is_preserved_and_does_not_predict",
+            "test_species_selection.SpeciesSelectionTests.test_selection_persists_and_rejects_invalid_updates",
+            "test_species_selection.SpeciesSelectionTests.test_yolo_receives_only_selected_class_ids_including_aliases",
+            "test_verification.VerificationTests.test_duplicate_subset_is_rejected",
+            "test_verification.VerificationTests.test_empty_subset_is_rejected_before_inserting_feedback",
+            "test_verification.VerificationTests.test_foreign_subset_is_rejected",
+            "test_verification.VerificationTests.test_incorrect_verdict_is_not_a_confirmed_target",
+            "test_verification.VerificationTests.test_individual_aggregation_counts_confirmed_targets_of_any_class",
+            "test_verification.VerificationTests.test_individual_feedback_rejects_mismatched_image",
+            "test_verification.VerificationTests.test_individual_reviews_become_complete_only_after_all_are_reviewed",
+            "test_verification.VerificationTests.test_no_detection_feedback_verifies_image_without_inventing_a_box_count",
+            "test_verification.VerificationTests.test_partial_review_leaves_image_unverified_and_updates_count",
+            "test_verification.VerificationTests.test_whole_image_review_counts_confirmed_detections_of_every_class",
+            "test_weights_path.WeightsPathTests.test_apostrophe_in_the_project_path_is_not_passed_to_ultralytics"
+          ]
+        },
+        {
+          "command": "npm --prefix frontend run test:e2e",
+          "completed_at_utc": "2026-11-05T20:58:04.103745+00:00",
+          "exit_code": 0,
+          "log_sha256": "41b07ec15b24bedd84e8090f4bac17d3c6f190d13f33dbc7c57024d46590f2b7",
+          "passed": 109,
+          "failed": 0,
+          "skipped": 0,
+          "test_names": [
+            "[api-contract] \u203a tests\\proxy.spec.ts:19:74 \u203a adapter rejects or sanitizes invalid-box.png (105ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:19:74 \u203a adapter rejects or sanitizes external.png (107ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:8:5 \u203a server adapter maps FastAPI result and proxies its stored image (165ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:19:74 \u203a adapter rejects or sanitizes error.png (46ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:24:5 \u203a upload proxy rejects invalid file type and missing files (44ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:30:5 \u203a reviewers and health expose only necessary fields (60ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:35:53 \u203a maps correct no-detection feedback to target_found (39ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:35:53 \u203a maps incorrect no-detection feedback to target_found (29ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:47:5 \u203a individual verification forwards the result image for ownership validation (36ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:40:5 \u203a maps individual feedback and rejects invalid identifiers (47ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:59:5 \u203a saved reviews are restored and unreviewed detections stay unreviewed (62ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:82:5 \u203a results reject unsafe labels, bad ids and missing records (48ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:88:5 \u203a live cameras expose status but never stream URLs or credentials (30ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:74:5 \u203a saved results load by id with their model version and any class label (60ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:95:5 \u203a live video is passed through as MJPEG and scans return the saved frame (61ms)",
+            "[api-contract] \u203a tests\\proxy.spec.ts:105:5 \u203a detector models list and switch, without leaking backend errors (68ms)",
+            "[desktop-chromium] \u203a tests\\backend-integration.spec.ts:45:5 \u203a backend errors keep the uploaded image and allow retry (858ms)",
+            "[desktop-chromium] \u203a tests\\backend-integration.spec.ts:15:43 \u203a mocked backend upload and acknowledged no detection feedback (1.3s)",
+            "[desktop-chromium] \u203a tests\\backend-integration.spec.ts:15:43 \u203a mocked backend upload and acknowledged detection feedback (1.4s)",
+            "[desktop-chromium] \u203a tests\\backend-integration.spec.ts:54:5 \u203a failed feedback is never shown as saved and can be retried (957ms)",
+            "[desktop-chromium] \u203a tests\\backend-integration.spec.ts:79:44 \u203a rejects HTTP failure with success envelope (437ms)",
+            "[desktop-chromium] \u203a tests\\backend-integration.spec.ts:79:44 \u203a rejects missing success data (416ms)",
+            "[desktop-chromium] \u203a tests\\backend-integration.spec.ts:87:5 \u203a late analysis response does not navigate away from the chosen page (494ms)",
+            "[desktop-chromium] \u203a tests\\backend-integration.spec.ts:69:5 \u203a missing reviewers leaves verification disabled (1.3s)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:30:53 \u203a accepts valid jpg (344ms)",
+            "[desktop-chromium] \u203a tests\\backend-integration.spec.ts:106:5 \u203a reviewer loading blocks overlapping reloads (777ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:14:5 \u203a dashboard cards and sidebar navigation (747ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:30:53 \u203a accepts valid png (399ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:30:53 \u203a accepts valid webp (421ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:59:5 \u203a empty image cannot be analyzed; picker is keyboard accessible (381ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:47:5 \u203a remove, reselect and replace image (520ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:69:5 \u203a drag and drop image (352ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:36:5 \u203a rejects unsupported, oversized and corrupt images (1.6s)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:78:5 \u203a independent reveal, hide, verification and confidence (1.6s)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:99:53 \u203a no detection feedback: Correct (1.4s)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:99:53 \u203a no detection feedback: Incorrect (1.4s)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:123:5 \u203a camera: none configured, then backend unreachable (470ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:134:5 \u203a camera: live view, current detections, recent captures and scan now (640ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:156:5 \u203a saved feedback stays on the reviewed detection only (632ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:109:5 \u203a direct results and refresh explain temporary image state (1.5s)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:201:5 \u203a camera shows a reconnecting error and disables scanning (395ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:182:5 \u203a a saved no-detection review is shown and an unreviewed one is not (531ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:210:5 \u203a results link for a missing image explains the error (367ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:216:5 \u203a settings selects species without exposing a model switch (626ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:242:5 \u203a guide includes six steps and working links (550ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:251:5 \u203a routes fit viewport, load without runtime errors or browser credentials (2.4s)",
+            "[mobile-chromium] \u203a tests\\backend-integration.spec.ts:15:43 \u203a mocked backend upload and acknowledged detection feedback (1.1s)",
+            "[mobile-chromium] \u203a tests\\backend-integration.spec.ts:45:5 \u203a backend errors keep the uploaded image and allow retry (419ms)",
+            "[desktop-chromium] \u203a tests\\frontend.spec.ts:271:5 \u203a narrow phone and tablet layouts fit all routes including results (3.1s)",
+            "[mobile-chromium] \u203a tests\\backend-integration.spec.ts:54:5 \u203a failed feedback is never shown as saved and can be retried (843ms)",
+            "[mobile-chromium] \u203a tests\\backend-integration.spec.ts:79:44 \u203a rejects HTTP failure with success envelope (438ms)",
+            "[mobile-chromium] \u203a tests\\backend-integration.spec.ts:15:43 \u203a mocked backend upload and acknowledged no detection feedback (1.0s)",
+            "[mobile-chromium] \u203a tests\\backend-integration.spec.ts:79:44 \u203a rejects missing success data (499ms)",
+            "[mobile-chromium] \u203a tests\\backend-integration.spec.ts:87:5 \u203a late analysis response does not navigate away from the chosen page (599ms)",
+            "[mobile-chromium] \u203a tests\\backend-integration.spec.ts:69:5 \u203a missing reviewers leaves verification disabled (944ms)",
+            "[mobile-chromium] \u203a tests\\backend-integration.spec.ts:106:5 \u203a reviewer loading blocks overlapping reloads (833ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:14:5 \u203a dashboard cards and sidebar navigation (743ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:30:53 \u203a accepts valid jpg (361ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:30:53 \u203a accepts valid png (364ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:30:53 \u203a accepts valid webp (369ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:47:5 \u203a remove, reselect and replace image (508ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:59:5 \u203a empty image cannot be analyzed; picker is keyboard accessible (363ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:69:5 \u203a drag and drop image (350ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:36:5 \u203a rejects unsupported, oversized and corrupt images (1.5s)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:78:5 \u203a independent reveal, hide, verification and confidence (1.7s)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:99:53 \u203a no detection feedback: Correct (1.4s)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:123:5 \u203a camera: none configured, then backend unreachable (393ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:99:53 \u203a no detection feedback: Incorrect (1.4s)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:156:5 \u203a saved feedback stays on the reviewed detection only (614ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:134:5 \u203a camera: live view, current detections, recent captures and scan now (721ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:109:5 \u203a direct results and refresh explain temporary image state (1.4s)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:201:5 \u203a camera shows a reconnecting error and disables scanning (372ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:182:5 \u203a a saved no-detection review is shown and an unreviewed one is not (520ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:210:5 \u203a results link for a missing image explains the error (347ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:216:5 \u203a settings selects species without exposing a model switch (603ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:242:5 \u203a guide includes six steps and working links (497ms)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:251:5 \u203a routes fit viewport, load without runtime errors or browser credentials (2.2s)",
+            "[mobile-chromium] \u203a tests\\frontend.spec.ts:271:5 \u203a narrow phone and tablet layouts fit all routes including results (3.0s)",
+            "[desktop-webkit] \u203a tests\\backend-integration.spec.ts:15:43 \u203a mocked backend upload and acknowledged detection feedback (2.1s)",
+            "[desktop-webkit] \u203a tests\\backend-integration.spec.ts:15:43 \u203a mocked backend upload and acknowledged no detection feedback (1.8s)",
+            "[desktop-webkit] \u203a tests\\backend-integration.spec.ts:54:5 \u203a failed feedback is never shown as saved and can be retried (1.9s)",
+            "[desktop-webkit] \u203a tests\\backend-integration.spec.ts:45:5 \u203a backend errors keep the uploaded image and allow retry (1.1s)",
+            "[desktop-webkit] \u203a tests\\backend-integration.spec.ts:69:5 \u203a missing reviewers leaves verification disabled (1.4s)",
+            "[desktop-webkit] \u203a tests\\backend-integration.spec.ts:79:44 \u203a rejects HTTP failure with success envelope (1.0s)",
+            "[desktop-webkit] \u203a tests\\backend-integration.spec.ts:79:44 \u203a rejects missing success data (993ms)",
+            "[desktop-webkit] \u203a tests\\backend-integration.spec.ts:106:5 \u203a reviewer loading blocks overlapping reloads (1.3s)",
+            "[desktop-webkit] \u203a tests\\backend-integration.spec.ts:87:5 \u203a late analysis response does not navigate away from the chosen page (1.4s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:30:53 \u203a accepts valid jpg (683ms)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:30:53 \u203a accepts valid png (747ms)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:14:5 \u203a dashboard cards and sidebar navigation (2.3s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:30:53 \u203a accepts valid webp (770ms)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:36:5 \u203a rejects unsupported, oversized and corrupt images (1.3s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:59:5 \u203a empty image cannot be analyzed; picker is keyboard accessible (754ms)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:47:5 \u203a remove, reselect and replace image (1.4s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:69:5 \u203a drag and drop image (758ms)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:99:53 \u203a no detection feedback: Correct (2.4s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:99:53 \u203a no detection feedback: Incorrect (2.3s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:78:5 \u203a independent reveal, hide, verification and confidence (3.8s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:123:5 \u203a camera: none configured, then backend unreachable (1.2s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:109:5 \u203a direct results and refresh explain temporary image state (2.6s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:156:5 \u203a saved feedback stays on the reviewed detection only (1.6s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:134:5 \u203a camera: live view, current detections, recent captures and scan now (2.1s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:201:5 \u203a camera shows a reconnecting error and disables scanning (917ms)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:210:5 \u203a results link for a missing image explains the error (963ms)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:182:5 \u203a a saved no-detection review is shown and an unreviewed one is not (1.5s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:242:5 \u203a guide includes six steps and working links (1.3s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:216:5 \u203a settings selects species without exposing a model switch (1.9s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:251:5 \u203a routes fit viewport, load without runtime errors or browser credentials (3.5s)",
+            "[desktop-webkit] \u203a tests\\frontend.spec.ts:271:5 \u203a narrow phone and tablet layouts fit all routes including results (4.4s)"
+          ]
+        },
+        {
+          "command": "python -m mypy --config-file backend/mypy.ini",
+          "completed_at_utc": "2026-11-05T20:59:27.007602+00:00",
+          "exit_code": 0,
+          "log_sha256": "e903677c248a6ca6ac9094eed21b5350be088d014c43570c553f047d8f487a0a"
+        },
+        {
+          "command": "docker compose build frontend",
+          "completed_at_utc": "2026-11-05T20:58:18.516251+00:00",
+          "exit_code": 0,
+          "log_sha256": "f85fd5ab0cfa1c66cff7d3766e485e38afb263d366f626c87b68a9fc8da51133"
+        },
+        {
+          "command": "docker compose build backend",
+          "completed_at_utc": "2026-11-05T21:01:16.283861+00:00",
+          "exit_code": 0,
+          "log_sha256": "d38eda7bf5408d98a37f9c897ef1799dd82daab5aedc6f27503cee7375fe59c8"
+        },
+        {
+          "command": "python backend/tests/run_compose.py --report <temporary report>",
+          "completed_at_utc": "2026-11-05T21:02:34.066487+00:00",
+          "exit_code": 0,
+          "log_sha256": "c6c6bebd4575cab7a397badac5d08a9c5a9413a474500d3e5a58799d4b001f3e",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        }
+      ],
+      "docker_smoke": {
+        "project": "detectra_test_f793ff9ee2fc451eaa62c938eb3a7ffe",
+        "started_at_utc": "2026-11-05T21:01:21.303932+00:00",
+        "checks": [
+          "All three services start healthy with a new database",
+          "Non-root applications, read-only code, loopback access and unchanged bundled weights",
+          "Local-only seed creates fixtures once without duplicate records",
+          "Standalone pages, static assets and frontend-to-backend health proxy work",
+          "Real YOLO upload persists and its image is served through the frontend proxy",
+          "Feedback is retrieved from PostgreSQL and corrupt uploads create no rows",
+          "Frontend reports backend failure and recovers after restart",
+          "Images, database records, feedback and preferences survive container replacement"
+        ],
+        "images": {
+          "db": "sha256:33f923b05f64ca54ac4401c01126a6b92afe839a0aa0a52bc5aeb5cc958e5f20",
+          "frontend": "sha256:cacb31cb1ad2f3c8f4580b31e21c1782d805dc868b3144b8ca0437101e188c4c",
+          "backend": "sha256:f859c7a1f3ad601d28b2fec3b2a4d46a40209ae8e466fef494b6aa7fb61e687d"
+        },
+        "status": "passed",
+        "cleanup": "Temporary project containers, networks and volumes removed",
+        "completed_at_utc": "2026-11-05T21:02:34.065184+00:00"
+      },
+      "synthetic_fixtures": {
+        "origin": "Created for Detectra from an RGB background, a rectangle, an ellipse and literal text with Pillow 13.0.0; no external source image.",
+        "size": [
+          640,
+          400
+        ],
+        "files": [
+          {
+            "path": "frontend/public/demo/camera-frame.png",
+            "sha256": "9ae59fcc225d7dd40b24246217b5571dfbe1e8b7d2f61b072f756bb6cb413753"
+          },
+          {
+            "path": "frontend/tests/fixtures/image.png",
+            "sha256": "9ae59fcc225d7dd40b24246217b5571dfbe1e8b7d2f61b072f756bb6cb413753"
+          },
+          {
+            "path": "frontend/tests/fixtures/image.jpg",
+            "sha256": "b4e86bc814fc3b47a8e64a36d94e735a9165633fdc51695bba76942bfc172b6d"
+          },
+          {
+            "path": "frontend/tests/fixtures/image.webp",
+            "sha256": "12c5ea2a6206bc7825646fe71c8498f10f714d433772a7e99feb3acc0220e37d"
+          }
+        ]
+      },
+      "security_audit": {
+        "gitleaks": {
+          "version": "8.30.1",
+          "history_command": "gitleaks git . --log-opts=\"--all --full-history\" --redact=100",
+          "history_findings": 0,
+          "tool_reported_commits_scanned": 22,
+          "reachable_commits": 25,
+          "current_text_files_scanned": 96,
+          "current_findings": 0
+        },
+        "additional_history_review": {
+          "reachable_objects": 493,
+          "text_pattern_matches_reviewed": 59,
+          "classification": "Documentation placeholders, disposable local credentials and deliberate test strings; no live credential identified. Private-address examples do not establish a private capture source."
+        },
+        "exact_private_value_check": {
+          "scope": "Reachable Git blobs under 2 MB, including history and stash refs",
+          "blobs_checked": 259,
+          "private_values_checked": 3,
+          "matches": []
+        },
+        "pdf_review": {
+          "pages": 18,
+          "email_addresses_found": 2,
+          "credential_url_matches": 0,
+          "gantt_pages_reviewed": [
+            14,
+            15
+          ],
+          "requirements_page_reviewed": 4,
+          "privacy_disposition": "Historical student contact information requires team consent before public visibility."
+        },
+        "pip_audit": {
+          "version": "2.10.1",
+          "local_before": {
+            "package": "pip",
+            "version": "24.3.1",
+            "unique_advisory_ids": [
+              "PYSEC-2026-1795",
+              "PYSEC-2026-1796",
+              "PYSEC-2026-196",
+              "PYSEC-2026-2875",
+              "PYSEC-2026-2876",
+              "PYSEC-2026-3721"
+            ]
+          },
+          "local_fix": "Upgraded only the existing environment installer to pip 26.3; no new project virtual environment.",
+          "local_after": {
+            "package_count": 70,
+            "advisories": 0,
+            "skipped": []
+          },
+          "container_fix": "Require setuptools>=84.1.0; rebuilt image installed 84.2.1. The fresh resolution also updated boto3/botocore from 1.43.124 to 1.43.125.",
+          "container_after": {
+            "package_count": 65,
+            "advisories": 0,
+            "skipped": [
+              "torch",
+              "torchvision"
+            ]
+          },
+          "container_base_version_lookup": {
+            "package_count": 65,
+            "advisories": 0,
+            "skipped": []
+          },
+          "base_version_limitation": "Removed +cpu only in a separate advisory lookup for torch/torchvision; installed wheel versions were not modified. This does not scan binary wheel contents."
+        },
+        "npm_audit": {
+          "all_dependencies": {
+            "info": 0,
+            "low": 0,
+            "moderate": 8,
+            "high": 0,
+            "critical": 0,
+            "total": 8
+          },
+          "runtime_dependencies": {
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "high": 0,
+            "critical": 0,
+            "total": 0
+          },
+          "advisory": "GHSA-g3hv-75wg-m249",
+          "remaining": "Eight affected development-tool packages from one minimatch advisory. Upstream typescript-estree 8.72.1 still requests ^10.2.2; npm offers a major eslint-config-next downgrade. No forced downgrade or unvalidated major override applied."
+        },
+        "publication_findings": [
+          {
+            "item": "House photograph and derived fixtures",
+            "location": "Git history beginning at 1c4055e; frontend/public/demo/camera-frame.png and frontend/tests/fixtures/image.*",
+            "status": "Source unknown, confirmed by repository owner. Current files replaced with original synthetic shapes. Historical content requires permission or separately approved remediation before public visibility."
+          },
+          {
+            "item": "Student contact details",
+            "location": "Historical docs/CIS553_Group07_ProjectPhaseII_Report.pdf and Git author metadata",
+            "status": "Do not repeat contact values in audit output; team consent/publication review pending."
+          }
+        ],
+        "limits": [
+          "Reachable local refs, including stash refs, were inspected; deleted remote refs and third-party copies are outside scope.",
+          "Model binaries, operating-system packages and cloud infrastructure were not vulnerability-scanned.",
+          "No public deployment, history rewrite, credential rotation or visibility change was performed."
+        ]
+      },
+      "collaboration": {
+        "repository_visibility": "private",
+        "remote_branch_count": 5,
+        "remote_main": "2720cbdab74c6cec136318d17bfd311be2dda582",
+        "pull_requests_found": 0,
+        "pr_query": "repo:elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System is:pr",
+        "gantt_source": "cf37ec6:docs/CIS553_Group07_ProjectPhaseII_Report.pdf, pages 11-16",
+        "review_status": "Local PR description prepared for Evan; branch not pushed and no remote PR created. Contributions distinguish recorded commits from planned assignments."
+      },
+      "documentation_checks": [
+        "All eleven required report sections present",
+        "Repository-relative Markdown links resolve",
+        "Code fences are balanced",
+        "No new Spanish text found in application sources, README or report",
+        "Actionlint passed; workflow unchanged in this milestone"
+      ],
+      "preservation": {
+        "original_weights_and_preferences": "All four protected file SHA-256 values unchanged",
+        "shared_database": "Not accessed during final milestone",
+        "history": "Preserved original commit authorship; no rewrite",
+        "test_resources": "Final temporary Docker project containers, networks and volumes removed"
+      },
+      "pending": [
+        "Approve final milestone commit",
+        "Approve branch push and PR creation",
+        "Run hosted CI and obtain Evan review before merge",
+        "Resolve historical-photo provenance and contact-information publication questions",
+        "Generate a final artifact from the approved committed source; previous development bundle is superseded",
+        "Approve repository visibility change separately",
+        "Physical RTSP validation and any saved real captures require separate coordination"
       ]
     }
   ]

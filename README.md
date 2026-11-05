@@ -2,6 +2,41 @@
 
 Detectra is our university project for detecting animals and people in uploaded images and camera footage. Users can review the detections and mark whether they are correct. We use Next.js for the frontend, FastAPI for the backend, PostgreSQL/Neon for the database, and local storage or S3 for images.
 
+**Course:** CIS 553: Software Engineering, Fall 2026. **Team:** Elyann Soto and Evan Wilson.
+
+The [Phase III implementation and testing report](docs/phase-3-implementation-testing.md) explains the implemented scope, test results, contributions, and remaining submission steps. The [test record](docs/phase-3-test-results.json) contains commands, dates, test names, and result counts.
+
+## Features and technology
+
+- Upload JPG, PNG, or WebP images and receive real YOLO detections with bounding boxes and confidence scores.
+- Reveal or hide individual detections, review them as Correct/Incorrect, and retrieve saved feedback after a page reload. Empty results can also be reviewed.
+- View a configured camera and use Scan Now to save a frame with its detections. Live inference and optional interval-based saving use the same model as uploads.
+- Select supported species in Settings; use the dashboard and How to Use page to navigate the workflows.
+- Run a local demonstration with synthetic sample records, or analyze permitted images without a physical camera.
+
+The stack is Next.js 16 with TypeScript and React, Python 3.13 with FastAPI and Ultralytics YOLO, and PostgreSQL 16. Playwright, unittest, mypy, ESLint, GitHub Actions, and Docker support testing and delivery. Node.js 22 is used in CI and Docker.
+
+## Project structure
+
+| Path | Purpose |
+| --- | --- |
+| `frontend/src/` | Pages, review components, and the server-side FastAPI proxy |
+| `backend/app/` | API, inference, camera processing, storage, and feedback transactions |
+| `backend/models/yolov8s-oiv7/` | Retained weights, model configuration, and historical evaluation |
+| `backend/database/` | Reproducible SQL schema and fictional sample records |
+| `backend/tests/`, `frontend/tests/` | Unit, integration, browser, and container checks |
+| `.github/workflows/ci.yml`, `compose.yaml`, `scripts/delivery.py` | CI, local containers, and versioned delivery packaging |
+| `docs/` | Phase III report and recorded test evidence |
+
+## Get the source
+
+```powershell
+git clone https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System.git
+cd Computer-Vision-Based-Animal-Detection-and-Monitoring-System
+```
+
+The repository is currently private, so cloning requires an authorized GitHub account. Phase III changes are on `codex/phase-3-implementation`; switch to that branch after it has been pushed. The Docker instructions below are an alternative to installing Python, Node.js, and PostgreSQL directly.
+
 ## Detection model
 
 We use **one model, `yolov8s-oiv7`**, with the original Ultralytics Open Images weights. The supported categories are bear, bird, cat, deer, dog, fox, lizard, person, raccoon, snake, and squirrel. Users choose which categories to detect in **Settings**. Deselecting all categories turns detection off. Images and camera frames use the same detector, with an input size of 640 and a default confidence threshold of 0.25. Missing weights or configuration cause an error instead of fake detections.
@@ -14,7 +49,7 @@ The results, limitations, file hashes, and hybrid comparison are saved in [`back
 
 ## Running on Windows
 
-You need Python 3.13, Node.js, and PostgreSQL 16 or later. You can create a local database using the steps below; access to our shared Neon database is not required. Starting the API does not create or reset the database.
+You need Python 3.13, Node.js 22, and PostgreSQL 16. You can create a local database using the steps below; access to our shared Neon database is not required. Starting the API does not create or reset the database. Keep the environment's pip installer updated; the final audit upgraded the local installer to 26.3 without changing the model or application dependencies.
 
 1. Copy `backend/.env.example` to `backend/.env` and fill in `DATABASE_URL`. Keep this private file out of Git.
 2. From the project root, run:
@@ -248,6 +283,20 @@ To reproduce the archived validation, use `--allow-partial-annotations`, with `-
 
 ## Repository contents
 
-The repository contains the application code, tests, example configuration, one model with its metadata and evaluation results, this README, and the Next.js development instructions. Private credentials, local preferences, uploaded images, Python environments, training data, and experiment files are excluded.
+The current tree contains the application code, tests, example configuration, one model with its metadata and evaluation results, this README, the Phase III report and test record, and the Next.js development instructions. Private credentials, local preferences, uploaded images, Python environments, training data, and experiment files are excluded.
+
+The frontend demo image and JPG/PNG/WebP fixtures are original synthetic shapes labeled as a demonstration. They replaced a house photograph whose source could not be confirmed. They test display and upload behavior, not detector accuracy. The historical photograph remains in Git history and must be reviewed before public publication.
+
+## Known limitations and submission status
+
+- Small lizards are often missed. The retained evaluation uses partly annotated validation images, not an independent final test set. Human feedback does not automatically retrain the model.
+- Physical RTSP validation is pending. The tested camera workflows use controlled fixtures; a real camera also requires private network access. The current live-camera manager reads one configured stream.
+- This is a controlled local prototype without authentication or account management. The reviewer list is not an access-control system. S3 mode currently requires publicly readable image URLs and has not been validated against a live bucket in Phase III; do not use it for private captures in a public deployment.
+- Email verification links, automated retraining, and analytics are not implemented. The dashboard is navigation, not an analytics dashboard.
+- Public hosting requires authentication, authorization for stored images and camera endpoints, HTTPS, and deployment-specific validation. The bundled local database and loopback-only frontend are the supported demonstration setup.
+
+The November 5, 2026 audit found no credentials in the scanned Git history. It found unresolved publication concerns: the old photograph's provenance and student contact details in the historical Phase II PDF and commit metadata. The frontend dependency audit reports eight moderate findings in development tooling, all associated with the [minimatch advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249), and none in runtime dependencies. No forced dependency downgrade was applied. These results are a dated audit, not a guarantee that the project is free of vulnerabilities.
+
+Before submission, Elyann and Evan need to review the contribution table and outstanding audit items, approve the branch push, obtain a passing GitHub Actions run, and complete Evan's PR review before merging. The repository is still private. Changing its visibility or rewriting history requires a separate decision; neither has been done.
 
 Our interface design reference is available in [Figma](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=8-2).
