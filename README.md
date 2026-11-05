@@ -94,7 +94,7 @@ Use **Demo Reviewer** when trying feedback. The sample camera is disabled and ha
 - **Camera:** Set `CAMERA_RTSP_URL` in `backend/.env`. Camera credentials are not returned to the browser. **Scan Now** saves the current frame and its detections. Set `CAMERA_SAVE_INTERVAL=0` to disable automatic saves. By default, frames can be saved every 30 seconds when a detection exceeds `CAMERA_SAVE_CONFIDENCE`.
 - **Image storage:** If `S3_BUCKET` is empty, images are saved in `backend/uploads/`, which Git ignores. For S3/R2, fill in the example environment variables and provide a public image URL. `PUBLIC_API_URL` must match the backend origin configured in the frontend.
 - **Human review:** Saved results can be reviewed per detection or per image using a reviewer listed in `trusted_persons`. The frontend's demo mode is separate from real detection results.
-- **Model settings:** `backend/models/active.txt` sets the default model. `LIZARD_MODEL` or a valid local selection can override it; these should not point to archived models. The model-selection API remains available for compatibility. Local category preferences are not committed to Git.
+- **Model settings:** `backend/models/active.txt` sets the default model. `LIZARD_MODEL` or a valid local selection can override it; these should not point to archived models. The model-selection API remains available for compatibility. Local category preferences are not committed to Git. `DETECTRA_STATE_DIR` can place saved preferences in a separate writable directory; without it, local installations continue using `backend/models/`.
 - **Previous results:** Saved records may refer to older model versions. Viewing or reviewing these records does not require keeping the old model weights on the server.
 
 ## Tests
@@ -146,6 +146,44 @@ This runner starts FastAPI on port 8102 and Next.js on port 3101. Its five Chrom
 The positive fixture is the NASA astronaut image distributed by scikit-image; its source, public-domain attribution, and SHA-256 are recorded in `backend/tests/fixtures/provenance.json`. It checks the application workflow, not independent detector accuracy. Physical RTSP capture and field testing are still pending. On November 5, 2026, the configured camera did not respond to a TCP-only connection check; no real frames were captured or saved.
 
 Mypy checks the API and development database scripts, including unannotated function bodies. It is not a strict typing guarantee for every dependency: Ultralytics and Boto3 are excluded from dependency inspection because their integration does not provide usable type information. The offline evaluation script is covered by its unit tests, not this mypy configuration. Executed Phase III checks are recorded in `docs/phase-3-test-results.json`.
+
+## Docker
+
+Docker Compose runs Next.js, FastAPI with CPU-only YOLO, and a separate PostgreSQL 16 database. Install Docker with Compose v2 (on Windows, use Docker Desktop with Linux containers). From the project root:
+
+```powershell
+Copy-Item .env.compose.example .env.compose
+# Set DETECTRA_DB_PASSWORD in .env.compose to a password for this local database.
+docker compose --env-file .env.compose build
+docker compose --env-file .env.compose up -d --wait
+docker compose --env-file .env.compose run --rm seed
+```
+
+Open `http://localhost:3000` and use **Demo Reviewer** to save feedback. The same sample result links listed above work in Docker. To use another local port, change `DETECTRA_WEB_PORT` in `.env.compose` and recreate the frontend with `docker compose --env-file .env.compose up -d`. Build logs and downloaded dependencies may take several minutes on the first run; the backend image includes CPU PyTorch and the original `yolov8s-oiv7` weights. A GPU is not required. Later builds reuse dependency layers. Docker builds use Next.js standalone output; ordinary local builds keep the existing configuration.
+
+The frontend is published only on `127.0.0.1`. FastAPI and PostgreSQL have no published host ports. Next.js connects to `http://backend:8000` inside Docker and proxies image requests to the browser. These saved internal image URLs belong to the Compose installation; moving its database into a different topology requires updating those URLs deliberately. The applications run as non-root users with read-only code and model files. `.dockerignore` includes only the required sources and selected model, excluding `.env` files, local preferences, uploads, tests, and host dependencies. Database and camera settings are passed at runtime, not baked into either application image.
+
+PostgreSQL initializes the existing schema only when its named volume is empty. The seed is an explicit command, remains limited to the local database, and can be repeated without overwriting reviewed records. It shares the database container's network namespace to retain the loopback-only safeguard. Existing database volumes are never reset automatically. Changing the password in `.env.compose` does not change the password of an already initialized PostgreSQL role; use PostgreSQL's password-change procedure when keeping that database.
+
+Named volumes preserve the database, uploaded/sample images, detector preferences, and Next.js cache. To stop and recreate the containers while keeping these volumes:
+
+```powershell
+docker compose --env-file .env.compose down
+docker compose --env-file .env.compose up -d --wait
+```
+
+`down --volumes` deletes this Compose project's stored records, images and preferences; reserve it for disposable data. Keep the same Compose project name when reopening an existing installation so it uses the same volumes. To inspect a startup problem, run `docker compose --env-file .env.compose ps` and `docker compose --env-file .env.compose logs backend frontend db`. Health checks wait for PostgreSQL, then FastAPI, then the frontend proxy.
+
+No camera is opened by default. To use your own camera, set `DETECTRA_CAMERA_RTSP_URL` and optionally `DETECTRA_CAMERA_NAME` in the ignored `.env.compose` file, then recreate the backend. The Docker host must be able to reach the camera's private network. Automatic capture stays disabled while `DETECTRA_CAMERA_SAVE_INTERVAL=0`; Scan Now still saves the current frame. Physical RTSP capture remains untested. This local setup does not add authentication; keep it on localhost until access controls are implemented for a shared deployment.
+
+To validate the built images without touching an existing installation:
+
+```powershell
+docker compose --env-file .env.compose pull db
+& $python backend/tests/run_compose.py --report "$env:TEMP/detectra-docker-results.json"
+```
+
+The smoke test requires the backend development dependencies and creates a randomly named Compose project, its own password, an available loopback port, and new volumes. It forces the camera off even if the shell contains camera settings. It checks the HTTP flow through the built frontend and backend, real inference, corrupt-image rejection, feedback persistence, backend recovery, and preservation of data after container replacement. Its `finally` cleanup removes only that random test project's resources. After a force-killed test, inspect resources named `detectra_test_<random id>` before removing them. These HTTP checks complement the Playwright browser suites; they do not replace physical-camera testing.
 
 ## Continuous integration
 

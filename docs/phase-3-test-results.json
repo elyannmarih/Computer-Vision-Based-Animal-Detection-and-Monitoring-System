@@ -448,7 +448,7 @@
       "milestone": "Continuous integration",
       "base_commit": "c4080c5",
       "branch": "codex/phase-3-implementation",
-      "status": "implemented and locally verified; awaiting commit approval",
+      "status": "committed with user approval; not pushed",
       "workflow": ".github/workflows/ci.yml",
       "workflow_validation": {
         "tool": "actionlint 1.7.12",
@@ -763,7 +763,162 @@
           "minimatch",
           "typescript-eslint"
         ]
-      }
+      },
+      "commit": "a416ffa"
+    },
+    {
+      "milestone": "Docker application stack and persistence",
+      "base_commit": "a416ffa",
+      "branch": "codex/phase-3-implementation",
+      "status": "implemented and locally verified; awaiting commit approval",
+      "build": {
+        "command": "docker compose --env-file <temporary test configuration> build backend frontend",
+        "exit_code": 0,
+        "initial_build_log_sha256": "8cb1260e24db3681326e08fde33db28569ef84673b0b3aebacf99fa249770668",
+        "final_build_log_sha256": "f59077da8cb47ec58339dc060f5eb47b443ed4a80083c4c1fca459077f09cf14",
+        "images": [
+          {
+            "tags": [
+              "detectra-backend:local"
+            ],
+            "id": "sha256:6aaecbe31721afaa2f54fc0862b0afc8dab8588cee227a6b266522092ed3e6e4",
+            "size_bytes": 634595934,
+            "runtime_user": "detectra"
+          },
+          {
+            "tags": [
+              "detectra-frontend:local"
+            ],
+            "id": "sha256:3a27a51f07a083d39108fb926803ded54d00433275d4cb9cf10e53a9d7a8dbd7",
+            "size_bytes": 96471666,
+            "runtime_user": "node"
+          }
+        ]
+      },
+      "compose_validation": {
+        "exit_code": 0,
+        "physical_camera": "Disabled during every automated test",
+        "database": "New PostgreSQL 16 volumes only"
+      },
+      "build_context": {
+        "file_count": 57,
+        "environment_files": 0,
+        "host_dependencies": 0,
+        "personal_uploads": 0,
+        "local_detector_preferences": 0,
+        "inspection": "Exported the effective Docker build context and checked its file list after all changes."
+      },
+      "smoke_test": {
+        "command": "python backend/tests/run_compose.py --report <temporary report path>",
+        "exit_code": 0,
+        "started_at_utc": "2026-11-05T20:29:13.092562+00:00",
+        "completed_at_utc": "2026-11-05T20:30:26.731587+00:00",
+        "passed": 8,
+        "failed": 0,
+        "checks": [
+          "All three services start healthy with a new database",
+          "Non-root applications, read-only code, loopback access and unchanged bundled weights",
+          "Local-only seed creates fixtures once without duplicate records",
+          "Standalone pages, static assets and frontend-to-backend health proxy work",
+          "Real YOLO upload persists and its image is served through the frontend proxy",
+          "Feedback is retrieved from PostgreSQL and corrupt uploads create no rows",
+          "Frontend reports backend failure and recovers after restart",
+          "Images, database records, feedback and preferences survive container replacement"
+        ],
+        "cleanup": "Temporary project containers, networks and volumes removed",
+        "inherited_environment_test": "Supplied dummy database password, port 1 and a fictional RTSP URL in the parent shell; the runner replaced them with isolated test settings.",
+        "log_sha256": "c6c6bebd4575cab7a397badac5d08a9c5a9413a474500d3e5a58799d4b001f3e"
+      },
+      "runs": [
+        {
+          "command": "python -m unittest discover -s backend/tests -v",
+          "completed_at_utc": "2026-11-05T20:23:58.600601+00:00",
+          "exit_code": 0,
+          "log_sha256": "e2e514a43363a30822d5eb1eca49c9f3be4860829557f9a8e826c606e7b61950",
+          "passed": 47,
+          "failed": 0,
+          "skipped": 0,
+          "test_names": [
+            "test_analysis.AnalysisTransactionTests.test_cleanup_failure_preserves_original_commit_error",
+            "test_analysis.AnalysisTransactionTests.test_commit_completes_before_success_is_returned",
+            "test_analysis.AnalysisTransactionTests.test_commit_failure_rolls_back_and_removes_image",
+            "test_analysis.AnalysisTransactionTests.test_query_failure_rolls_back_and_cleans_up",
+            "test_analysis.AnalysisTransactionTests.test_uncertain_commit_keeps_image_in_case_the_database_committed",
+            "test_camera_url.CameraUrlTests.test_capture_exception_does_not_kill_reconnection_or_expose_url",
+            "test_camera_url.CameraUrlTests.test_credentials_are_removed_and_never_appear_in_status",
+            "test_camera_url.CameraUrlTests.test_failed_capture_is_released_and_retried",
+            "test_camera_url.CameraUrlTests.test_file_path_and_url_without_credentials_stay_stable",
+            "test_camera_url.CameraUrlTests.test_ipv6_address_stays_valid_after_credentials_are_removed",
+            "test_camera_url.CameraUrlTests.test_query_tokens_and_fragments_are_not_published",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_application_database_url_is_never_a_fallback",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_cli_refuses_missing_configuration_without_loading_dotenv",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_connection_failure_returns_a_safe_error",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_database_name_must_identify_development_or_testing",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_invalid_connection_string_does_not_expose_its_value",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_local_development_and_test_targets_are_accepted",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_missing_user_is_rejected",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_remote_or_implicit_hosts_are_rejected",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_service_hostaddr_and_arbitrary_options_are_rejected",
+            "test_lifespan.LifespanTests.test_pool_closes_when_camera_stop_fails",
+            "test_lifespan.LifespanTests.test_request_failure_still_closes_resources",
+            "test_lifespan.LifespanTests.test_startup_failure_closes_pool_and_stops_partial_camera_start",
+            "test_model_configuration.ModelConfigurationTests.test_bundled_default_is_the_only_distributed_model",
+            "test_model_configuration.ModelConfigurationTests.test_missing_configuration_never_generates_fake_detections",
+            "test_model_configuration.ModelConfigurationTests.test_removed_local_model_falls_back_to_bundled_default",
+            "test_offline_evaluation.OfflineEvaluationTests.test_complete_negative_scores_every_supported_class",
+            "test_offline_evaluation.OfflineEvaluationTests.test_duplicate_predictions_cannot_match_one_animal_twice",
+            "test_offline_evaluation.OfflineEvaluationTests.test_empty_scene_with_no_predictions_has_no_counts",
+            "test_offline_evaluation.OfflineEvaluationTests.test_nonoverlapping_prediction_does_not_match",
+            "test_offline_evaluation.OfflineEvaluationTests.test_partial_annotations_require_explicit_opt_in",
+            "test_offline_evaluation.OfflineEvaluationTests.test_wrong_species_is_false_positive_and_missed_target",
+            "test_species_selection.SpeciesSelectionTests.test_default_includes_all_supported_classes",
+            "test_species_selection.SpeciesSelectionTests.test_empty_selection_is_preserved_and_does_not_predict",
+            "test_species_selection.SpeciesSelectionTests.test_selection_persists_and_rejects_invalid_updates",
+            "test_species_selection.SpeciesSelectionTests.test_yolo_receives_only_selected_class_ids_including_aliases",
+            "test_verification.VerificationTests.test_duplicate_subset_is_rejected",
+            "test_verification.VerificationTests.test_empty_subset_is_rejected_before_inserting_feedback",
+            "test_verification.VerificationTests.test_foreign_subset_is_rejected",
+            "test_verification.VerificationTests.test_incorrect_verdict_is_not_a_confirmed_target",
+            "test_verification.VerificationTests.test_individual_aggregation_counts_confirmed_targets_of_any_class",
+            "test_verification.VerificationTests.test_individual_feedback_rejects_mismatched_image",
+            "test_verification.VerificationTests.test_individual_reviews_become_complete_only_after_all_are_reviewed",
+            "test_verification.VerificationTests.test_no_detection_feedback_verifies_image_without_inventing_a_box_count",
+            "test_verification.VerificationTests.test_partial_review_leaves_image_unverified_and_updates_count",
+            "test_verification.VerificationTests.test_whole_image_review_counts_confirmed_detections_of_every_class",
+            "test_weights_path.WeightsPathTests.test_apostrophe_in_the_project_path_is_not_passed_to_ultralytics"
+          ]
+        },
+        {
+          "command": "python -m mypy --config-file backend/mypy.ini",
+          "completed_at_utc": "2026-11-05T20:24:16.094790+00:00",
+          "exit_code": 0,
+          "log_sha256": "e903677c248a6ca6ac9094eed21b5350be088d014c43570c553f047d8f487a0a"
+        },
+        {
+          "command": "npm --prefix frontend run lint",
+          "completed_at_utc": "2026-11-05T20:24:15.307434+00:00",
+          "exit_code": 0,
+          "log_sha256": "65d10c2da0781691adc45c185308c222c2a92911360ade0a27a4e555be91c5bb"
+        },
+        {
+          "command": "npm --prefix frontend run typecheck",
+          "completed_at_utc": "2026-11-05T20:24:15.310798+00:00",
+          "exit_code": 0,
+          "log_sha256": "4bb40eef8e3c339af20950a8105947f07a8ababf21de71719193e97e2907811b"
+        }
+      ],
+      "preservation": {
+        "original_model_weights": "SHA-256 unchanged",
+        "original_active_and_selected_preferences": "SHA-256 unchanged",
+        "shared_database": "Not accessed"
+      },
+      "limitations": [
+        "Validation used Linux amd64 images through Docker Desktop; other architectures were not tested.",
+        "The Docker smoke suite checks HTTP integration and persistence, not browser rendering; Playwright was run in the previous milestone.",
+        "No physical camera capture, public deployment or image publication was performed.",
+        "Authentication is not implemented; the Compose frontend binds only to localhost.",
+        "Versioned delivery artifacts and final documentation remain for subsequent milestones."
+      ]
     }
   ]
 }
