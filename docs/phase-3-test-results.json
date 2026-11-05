@@ -1429,6 +1429,69 @@
         "Approve repository visibility change separately",
         "Physical RTSP validation and any saved real captures require separate coordination"
       ]
+    },
+    {
+      "milestone": "Hosted CI and project status update",
+      "reviewed_on": "2026-11-05",
+      "branch": "codex/phase-3-implementation",
+      "tested_head_commit": "8d24056c8376646a2be1edd3086cb73417ce4bfc",
+      "ci": {
+        "run_id": 42122426016,
+        "url": "https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/actions/runs/42122426016",
+        "conclusion": "success",
+        "application_checks": "success",
+        "docker_delivery": "success",
+        "passed": {
+          "python_unit": 47,
+          "postgresql_and_yolo_integration": 22,
+          "browser_regression": 109,
+          "real_backend_browser_workflows": 5
+        },
+        "static_analysis_and_production_build": "passed",
+        "delivery": "Images built and tested; package verified and loaded; packaged Compose checks passed.",
+        "artifact_scope": "Diagnostic artifacts uploaded. Downloadable delivery artifact upload is restricted to main and was skipped for this PR run.",
+        "previous_run": {
+          "run_id": 42109868881,
+          "conclusion": "cancelled",
+          "cause": "The 30-minute job limit was exceeded during slow Ubuntu browser dependency downloads from the Azure mirror."
+        }
+      },
+      "collaboration_correction": {
+        "supersedes": "Earlier no-PR search result and pre-push status in the final audit snapshot",
+        "pr_1": {
+          "author": "SleepingBear23",
+          "state": "open"
+        },
+        "pr_2": {
+          "state": "open",
+          "requested_reviewer": "SleepingBear23",
+          "submitted_reviews": 0
+        },
+        "repository_visibility": "private"
+      },
+      "history_decision": {
+        "status": "Preserve the existing repository history; the separate local cleanup trial is not being applied.",
+        "photo": "The historical photograph matches the entrance image in the Figma design. Verified visually, by dimensions, and by matching the Figma image hash to the historical file SHA-1. Current demo/test images remain synthetic.",
+        "contact_emails": "Historical PDF contact emails and normal Git author information are not credentials and are not scheduled for removal. This records the decision to retain history, not verified publication consent from both authors.",
+        "remote_history_rewritten": false,
+        "figma_verification": {
+          "url": "https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=10-679",
+          "node_name": "Image (Live camera view of a residential entrance)",
+          "figma_image_hash_and_file_sha1": "34c699196b94dd6bc2acacce0ea37d9b241c6f29",
+          "dimensions": [
+            1600,
+            1067
+          ],
+          "historical_git_blob": "0b108ee8d5700852558cc4ee26975633900574ae",
+          "scope": "Confirms the asset is present in the design and matches the historical repository file. Does not identify the original photographer or independently establish the original asset license."
+        }
+      },
+      "configuration_ignore_check": {
+        "private_paths_ignored": 14,
+        "example_paths_allowed": 4,
+        "existing_tracked_examples_preserved": 3
+      },
+      "record_scope": "Earlier milestones are dated snapshots. Their raw results are preserved; this entry updates the current status. Hosted tests cover the indicated commit, not these later documentation and ignore-rule edits."
     }
   ]
 }

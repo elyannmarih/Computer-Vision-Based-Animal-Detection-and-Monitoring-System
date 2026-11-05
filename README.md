@@ -228,7 +228,7 @@ The job runs Python unit tests, mypy, PostgreSQL/inference integration tests, ES
 
 Test logs, installed dependency versions, the browser report, and retained failure traces are uploaded for seven days, including when a test fails. Dependency installation requires internet access. The actions are pinned to commit SHAs, the workflow token has read-only repository permissions, and checkout does not retain Git credentials. The Docker delivery job starts only after these application checks pass.
 
-No GitHub-hosted run has been triggered yet. The first remote run remains pending approval to push this branch and open the pull request. Local validation details are in `docs/phase-3-test-results.json`.
+The GitHub-hosted [CI run for commit 8d24056](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/actions/runs/42122426016) passed on November 5, 2026, including Application checks and Docker delivery. The earlier run reached its 30-minute limit while downloading Ubuntu browser dependencies; the workflow now uses the official Ubuntu mirrors instead of the slow Azure mirror. Local and hosted validation records are in `docs/phase-3-test-results.json`.
 
 ## Delivery
 
@@ -246,7 +246,7 @@ docker compose --env-file .env.compose up -d --wait --no-build --pull never
 docker compose --env-file .env.compose run --rm seed
 ```
 
-Open `http://localhost:3000`. This delivery currently targets Linux amd64 containers and local access. No GHCR publication, GitHub Release publication, public deployment or physical-camera capture is configured. Those external actions remain subject to approval. GitHub artifact upload and hosted execution have not been tested remotely yet.
+Open `http://localhost:3000`. This delivery currently targets Linux amd64 containers and local access. No GHCR publication, GitHub Release publication, public deployment or physical-camera capture is configured. The PR workflow has successfully built, tested, packaged, reloaded, and tested the delivery in GitHub Actions. Diagnostic artifacts were uploaded; the downloadable delivery artifact is uploaded only from `main`, so that final upload remains pending the merge and a successful run on `main`.
 
 To reproduce packaging locally from a clean, committed checkout:
 
@@ -285,7 +285,7 @@ To reproduce the archived validation, use `--allow-partial-annotations`, with `-
 
 The current tree contains the application code, tests, example configuration, one model with its metadata and evaluation results, this README, the Phase III report and test record, and the Next.js development instructions. Private credentials, local preferences, uploaded images, Python environments, training data, and experiment files are excluded.
 
-The frontend demo image and JPG/PNG/WebP fixtures are original synthetic shapes labeled as a demonstration. They replaced a house photograph whose source could not be confirmed. They test display and upload behavior, not detector accuracy. The historical photograph remains in Git history and must be reviewed before public publication.
+The frontend demo image and JPG/PNG/WebP fixtures are original synthetic shapes labeled as a demonstration. They test display and upload behavior, not detector accuracy. The earlier house photograph remains in Git history and matches the [entrance image in our Figma design](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=10-679). On November 5, we verified the visual match, the 1600 by 1067 dimensions, and the matching image hash. We are preserving the existing Git history.
 
 ## Known limitations and submission status
 
@@ -295,8 +295,8 @@ The frontend demo image and JPG/PNG/WebP fixtures are original synthetic shapes 
 - Email verification links, automated retraining, and analytics are not implemented. The dashboard is navigation, not an analytics dashboard.
 - Public hosting requires authentication, authorization for stored images and camera endpoints, HTTPS, and deployment-specific validation. The bundled local database and loopback-only frontend are the supported demonstration setup.
 
-The November 5, 2026 audit found no credentials in the scanned Git history. It found unresolved publication concerns: the old photograph's provenance and student contact details in the historical Phase II PDF and commit metadata. The frontend dependency audit reports eight moderate findings in development tooling, all associated with the [minimatch advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249), and none in runtime dependencies. No forced dependency downgrade was applied. These results are a dated audit, not a guarantee that the project is free of vulnerabilities.
+The November 5, 2026 audit found no exposed live credentials in the scanned Git history. The historical Phase II PDF contains student contact emails, and Git retains normal author information; these are not credentials and are not scheduled for removal. Environment files and their local or production variants are ignored, while sanitized configuration examples remain tracked. The frontend dependency audit reports eight moderate findings in development tooling, all associated with the [minimatch advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249), and none in runtime dependencies. No forced dependency downgrade was applied. These results are a dated audit, not a guarantee that the project is free of vulnerabilities.
 
-Before submission, Elyann and Evan need to review the contribution table and outstanding audit items, approve the branch push, obtain a passing GitHub Actions run, and complete Evan's PR review before merging. The repository is still private. Changing its visibility or rewriting history requires a separate decision; neither has been done.
+The branch is pushed and hosted CI has passed. [PR #2](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/2) remains open for Evan's review before merging. Before submission, we still need to review the contribution table, produce the final delivery artifact, and decide on repository visibility. The repository remains private; no remote history rewrite or visibility change has been performed. History rewriting is not a requirement for running or reviewing the project.
 
 Our interface design reference is available in [Figma](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=8-2).
