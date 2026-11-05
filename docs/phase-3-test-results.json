@@ -1,0 +1,141 @@
+{
+  "milestones": [
+    {
+      "milestone": "Database setup and sample data",
+      "base_commit": "2720cbdab74c6cec136318d17bfd311be2dda582",
+      "branch": "codex/phase-3-implementation",
+      "status": "implemented and locally verified; awaiting commit approval",
+      "runs": [
+        {
+          "command": "python -m unittest discover -s backend/tests -v",
+          "completed_at_utc": "2026-11-05T19:32:16.414422+00:00",
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "test_names": [
+            "test_analysis.AnalysisTransactionTests.test_cleanup_failure_preserves_original_commit_error",
+            "test_analysis.AnalysisTransactionTests.test_commit_completes_before_success_is_returned",
+            "test_analysis.AnalysisTransactionTests.test_commit_failure_rolls_back_and_removes_image",
+            "test_analysis.AnalysisTransactionTests.test_query_failure_rolls_back_and_cleans_up",
+            "test_analysis.AnalysisTransactionTests.test_uncertain_commit_keeps_image_in_case_the_database_committed",
+            "test_camera_url.CameraUrlTests.test_credentials_are_removed_and_never_appear_in_status",
+            "test_camera_url.CameraUrlTests.test_file_path_and_url_without_credentials_stay_stable",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_application_database_url_is_never_a_fallback",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_cli_refuses_missing_configuration_without_loading_dotenv",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_connection_failure_returns_a_safe_error",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_database_name_must_identify_development_or_testing",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_invalid_connection_string_does_not_expose_its_value",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_local_development_and_test_targets_are_accepted",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_missing_user_is_rejected",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_remote_or_implicit_hosts_are_rejected",
+            "test_development_db.DevelopmentDatabaseSafetyTests.test_service_hostaddr_and_arbitrary_options_are_rejected",
+            "test_model_configuration.ModelConfigurationTests.test_bundled_default_is_the_only_distributed_model",
+            "test_model_configuration.ModelConfigurationTests.test_missing_configuration_never_generates_fake_detections",
+            "test_model_configuration.ModelConfigurationTests.test_removed_local_model_falls_back_to_bundled_default",
+            "test_offline_evaluation.OfflineEvaluationTests.test_complete_negative_scores_every_supported_class",
+            "test_offline_evaluation.OfflineEvaluationTests.test_duplicate_predictions_cannot_match_one_animal_twice",
+            "test_offline_evaluation.OfflineEvaluationTests.test_empty_scene_with_no_predictions_has_no_counts",
+            "test_offline_evaluation.OfflineEvaluationTests.test_nonoverlapping_prediction_does_not_match",
+            "test_offline_evaluation.OfflineEvaluationTests.test_partial_annotations_require_explicit_opt_in",
+            "test_offline_evaluation.OfflineEvaluationTests.test_wrong_species_is_false_positive_and_missed_target",
+            "test_species_selection.SpeciesSelectionTests.test_default_includes_all_supported_classes",
+            "test_species_selection.SpeciesSelectionTests.test_empty_selection_is_preserved_and_does_not_predict",
+            "test_species_selection.SpeciesSelectionTests.test_selection_persists_and_rejects_invalid_updates",
+            "test_species_selection.SpeciesSelectionTests.test_yolo_receives_only_selected_class_ids_including_aliases",
+            "test_verification.VerificationTests.test_duplicate_subset_is_rejected",
+            "test_verification.VerificationTests.test_empty_subset_is_rejected_before_inserting_feedback",
+            "test_verification.VerificationTests.test_foreign_subset_is_rejected",
+            "test_verification.VerificationTests.test_incorrect_verdict_is_not_a_confirmed_target",
+            "test_verification.VerificationTests.test_individual_aggregation_counts_confirmed_targets_of_any_class",
+            "test_verification.VerificationTests.test_individual_feedback_rejects_mismatched_image",
+            "test_verification.VerificationTests.test_individual_reviews_become_complete_only_after_all_are_reviewed",
+            "test_verification.VerificationTests.test_no_detection_feedback_verifies_image_without_inventing_a_box_count",
+            "test_verification.VerificationTests.test_partial_review_leaves_image_unverified_and_updates_count",
+            "test_verification.VerificationTests.test_whole_image_review_counts_confirmed_detections_of_every_class",
+            "test_weights_path.WeightsPathTests.test_apostrophe_in_the_project_path_is_not_passed_to_ultralytics"
+          ],
+          "log_sha256": "ddeae05c19385ad10dc4185a8cf7de28c1efeeb54bc7e861c738d717b89ffcd6"
+        },
+        {
+          "command": "python -m unittest discover -s backend/tests/integration -v",
+          "completed_at_utc": "2026-11-05T19:33:39.812594+00:00",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0,
+          "test_names": [
+            "test_database.PostgreSQLSetupTests.test_camera_deletion_keeps_images_and_clears_reference",
+            "test_database.PostgreSQLSetupTests.test_empty_database_initializes_and_repeat_is_a_no_op",
+            "test_database.PostgreSQLSetupTests.test_existing_image_content_is_never_overwritten",
+            "test_database.PostgreSQLSetupTests.test_existing_unrelated_database_is_left_unchanged",
+            "test_database.PostgreSQLSetupTests.test_image_deletion_cascades_only_to_its_detections",
+            "test_database.PostgreSQLSetupTests.test_invalid_confidence_and_missing_parent_are_rejected",
+            "test_database.PostgreSQLSetupTests.test_required_lookup_indexes_are_created",
+            "test_database.PostgreSQLSetupTests.test_sample_data_matches_response_schemas_and_verification_counts",
+            "test_database.PostgreSQLSetupTests.test_schema_preserves_existing_numeric_precision_and_optional_fields",
+            "test_database.PostgreSQLSetupTests.test_seed_is_repeatable_and_does_not_overwrite_reviewed_records",
+            "test_database.PostgreSQLSetupTests.test_seed_requires_initialized_schema",
+            "test_database.PostgreSQLSetupTests.test_seeded_records_can_be_read_through_fastapi"
+          ],
+          "log_sha256": "fed6e301f76327c905db76e4c55418549de6a5abd98e49576ae4d92d3e768d0a"
+        }
+      ],
+      "database_environment": "Disposable PostgreSQL 16 Docker container bound to 127.0.0.1; each integration run creates and removes its own randomly named test database.",
+      "schema_comparison": {
+        "columns_matching_existing_schema": 47,
+        "foreign_keys_matching_existing_schema": 6,
+        "check_constraint_count": 9,
+        "private_records_copied": 0,
+        "shared_database_writes": 0
+      },
+      "cli_checks": [
+        {
+          "command": "python backend/init_db.py",
+          "result": "Development schema created."
+        },
+        {
+          "command": "python backend/init_db.py (repeat)",
+          "result": "Development schema already initialized; no changes made."
+        },
+        {
+          "command": "python backend/seed.py --uploads-dir <temporary-directory>",
+          "result": {
+            "inserted": {
+              "cameras": 1,
+              "models": 1,
+              "trusted_persons": 1,
+              "human_verifications": 3,
+              "images": 3,
+              "detections": 3
+            },
+            "existing_records": "left unchanged"
+          }
+        },
+        {
+          "command": "python backend/seed.py --uploads-dir <temporary-directory> (repeat)",
+          "result": {
+            "inserted": {
+              "cameras": 0,
+              "models": 0,
+              "trusted_persons": 0,
+              "human_verifications": 0,
+              "images": 0,
+              "detections": 0
+            },
+            "existing_records": "left unchanged"
+          }
+        }
+      ],
+      "active_model": {
+        "version": "yolov8s-oiv7",
+        "weights_sha256": "4663086e1b8edbc4202a9ec589b03195ed149ef8aa8beeb4b503e0e35ff1731a",
+        "weights_default_and_local_selections_unchanged": true
+      },
+      "limitations": [
+        "This milestone checks database reproduction and seeded-record API reads. Full frontend-to-backend persistence, camera fixtures, static analysis, CI, Docker delivery and the final report belong to later milestones.",
+        "FastAPI TestClient emitted a Starlette deprecation warning about its httpx integration; all assertions passed.",
+        "No physical camera was started and no shared database records were changed."
+      ],
+      "sample_data": "Geometric PNG fixtures generated locally; fictional scores and labels, not actual YOLO predictions."
+    }
+  ]
+}

@@ -14,7 +14,7 @@ The results, limitations, file hashes, and hybrid comparison are saved in [`back
 
 ## Running on Windows
 
-You need Python 3.13, Node.js, and access to an existing Detectra PostgreSQL database. The database must contain the `cameras`, `models`, `trusted_persons`, `human_verifications`, `images`, and `detections` tables. Starting the API does not create or reset the database.
+You need Python 3.13, Node.js, and PostgreSQL 16 or later. You can create a local database using the steps below; access to our shared Neon database is not required. Starting the API does not create or reset the database.
 
 1. Copy `backend/.env.example` to `backend/.env` and fill in `DATABASE_URL`. Keep this private file out of Git.
 2. From the project root, run:
@@ -37,6 +37,57 @@ You need Python 3.13, Node.js, and access to an existing Detectra PostgreSQL dat
    Open `http://localhost:3000`. The pages are `/`, `/upload`, `/camera`, `/results`, `/settings`, and `/how-to-use`. Browser requests go through `/api/detectra/*`. The server-only `API_BASE_URL` variable must point to the backend.
 
 On other operating systems, create a Python virtual environment, install `backend/requirements.txt`, and run `python -m uvicorn app.main:app` from the `backend` directory.
+
+## Database setup and sample data
+
+The [SQL schema](backend/database/schema.sql) reproduces the six tables used by the current API, including their types, defaults, foreign keys, and checks. It adds indexes for image lists and verification lookups. We checked the structure against the existing database using read-only metadata queries; no private records were copied. `primary_account_id` remains a UUID field on `trusted_persons`, as in the existing schema. It does not imply that account management has been implemented.
+
+First, install the backend dependencies without starting the application:
+
+```powershell
+.\backend\run.ps1 -SetupOnly
+$python = "$env:LOCALAPPDATA/Detectra/venv/Scripts/python.exe"
+```
+
+Using a local PostgreSQL administrator connection, create a development role and an empty database. Choose your own local password when prompted:
+
+```powershell
+createuser --host=127.0.0.1 --username=postgres --pwprompt detectra_dev
+createdb --host=127.0.0.1 --username=postgres --owner=detectra_dev detectra_dev
+```
+
+Set `DETECTRA_DEV_DATABASE_URL` in your shell with that role's password, URL-encoded if it contains special characters. The following value is only an example:
+
+```powershell
+$env:DETECTRA_DEV_DATABASE_URL = 'postgresql://detectra_dev:replace-me@127.0.0.1:5432/detectra_dev'
+& $python backend/init_db.py
+& $python backend/seed.py
+```
+
+These scripts read only the explicitly exported development URL. They do not read `.env`, fall back to `DATABASE_URL`, or accept remote hosts. Database names must be `detectra_dev` or `detectra_test`, optionally followed by an underscore and a lowercase alphanumeric suffix. Setup requires an empty database; repeating it on a schema created by this script makes no changes. An unrelated existing schema is rejected. There is no reset or delete option.
+
+For a direct SQL installation on an empty local database, use `psql --dbname="$env:DETECTRA_DEV_DATABASE_URL" --set=ON_ERROR_STOP=1 --single-transaction --file=backend/database/schema.sql` instead of `init_db.py`. Unlike the Python helper, `psql` does not enforce the local-host check. Do not point this command at the shared database. The transaction prevents a failed installation from leaving only part of the schema. See the PostgreSQL [CREATE TABLE documentation](https://www.postgresql.org/docs/16/sql-createtable.html) and psycopg [transaction documentation](https://www.psycopg.org/psycopg3/docs/basic/transactions.html).
+
+The [sample records](backend/database/sample_data.json) include one disabled fictional camera, one fictional reviewer, three images, three detections, and examples of correct, incorrect, empty-image, and pending reviews. `seed.py` creates the PNG images locally using geometric shapes and visible **SYNTHETIC DEMO** labels. We do not use third-party photos or personal camera images. Boxes and confidence scores are manually authored examples, not YOLO predictions or evaluation results. The `stub-demo-v1` database record identifies these examples; it does not install a second detector or change the active YOLO model.
+
+Sample IDs are fixed. Running the seed again does not duplicate records, replace existing rows, or reset feedback. It also refuses to overwrite an image with different contents. Database inserts run in one transaction. If a later database operation fails, generated fixture files may remain and can be reused on retry. Use the same API origin when repeating the seed; existing URLs are not rewritten. `--uploads-dir` selects a different local fixture directory and `--api-base-url` sets the API origin used in sample image URLs. The default directory is `backend/uploads/` and the default origin is `http://127.0.0.1:8000`.
+
+To run against this local database without opening a personal camera or using a bucket, set these variables in the backend terminal before starting the API:
+
+```powershell
+$env:DATABASE_URL = $env:DETECTRA_DEV_DATABASE_URL
+$env:CAMERA_RTSP_URL = ''
+$env:S3_BUCKET = ''
+.\backend\run.ps1
+```
+
+Start the frontend as described above, with `API_BASE_URL=http://127.0.0.1:8000`. Check `http://127.0.0.1:8000/health`, then open these pages:
+
+- `/results?image=50000000-0000-0000-0000-000000000001`: two sample boxes with saved Correct/Incorrect feedback.
+- `/results?image=50000000-0000-0000-0000-000000000002`: a reviewed empty-image example.
+- `/results?image=50000000-0000-0000-0000-000000000003`: an unreviewed example for trying feedback and refreshing the page.
+
+Use **Demo Reviewer** when trying feedback. The sample camera is disabled and has no real stream. For actual predictions, upload your own permitted test image; this uses the unchanged `yolov8s-oiv7` detector.
 
 ## Configuration
 
@@ -68,6 +119,18 @@ npm run test:e2e
 ```
 
 Playwright uses local test servers on ports 8101 and 3100 with simulated API responses. These tests do not write to the production database. They check uploads, API responses, results, human review, category selection, and Scan Now in desktop/mobile Chromium and WebKit. We still need field testing to check how the system behaves with a physical camera.
+
+The database setup tests also run against real PostgreSQL. Provide a separate local `detectra_test` database and a test role with `CREATEDB` permission, then run:
+
+```powershell
+createuser --host=127.0.0.1 --username=postgres --createdb --pwprompt detectra_test
+createdb --host=127.0.0.1 --username=postgres --owner=detectra_test detectra_test
+$env:DETECTRA_TEST_DATABASE_URL = 'postgresql://detectra_test:replace-me@127.0.0.1:5432/detectra_test'
+$env:PYTHONPATH = (Resolve-Path backend).Path
+& $python -m unittest discover -s backend/tests/integration -v
+```
+
+The suite creates a randomly named test database and removes only that database afterward. Individual tests roll back their changes. It checks schema creation, repeat runs, sample data, foreign keys, numeric checks, response schemas, and preservation of existing records and files. Missing or unsafe test configuration fails the integration suite rather than silently skipping it. Results from executed Phase III checks are recorded in `docs/phase-3-test-results.json`.
 
 ## Evaluating the detector
 

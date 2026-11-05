@@ -1,0 +1,27 @@
+{
+  "description": "Fictional demonstration records. Confidence scores and boxes are manually authored examples, not YOLO evaluation results. Images are generated locally from geometric shapes; no third-party or personal photographs are used.",
+  "cameras": [
+    {"camera_id": "10000000-0000-0000-0000-000000000001", "rtsp_stream_url": "rtsp://camera.example.invalid/demo", "location_name": "Demo camera (not connected)", "enabled": false}
+  ],
+  "models": [
+    {"model_id": "20000000-0000-0000-0000-000000000001", "version_number": "stub-demo-v1", "precision_rating": null}
+  ],
+  "trusted_persons": [
+    {"trusted_person_id": "30000000-0000-0000-0000-000000000001", "primary_account_id": "30000000-0000-0000-0000-000000000002", "first_name": "Demo", "last_name": "Reviewer", "email": "reviewer@example.invalid", "phone_number": "+12025550123", "receive_email": false, "receive_sms": false}
+  ],
+  "human_verifications": [
+    {"verification_id": "40000000-0000-0000-0000-000000000001", "verified_by_id": "30000000-0000-0000-0000-000000000001", "target_found": true, "verified_at": "2026-01-01T12:05:00Z"},
+    {"verification_id": "40000000-0000-0000-0000-000000000002", "verified_by_id": "30000000-0000-0000-0000-000000000001", "target_found": false, "verified_at": "2026-01-01T12:06:00Z"},
+    {"verification_id": "40000000-0000-0000-0000-000000000003", "verified_by_id": "30000000-0000-0000-0000-000000000001", "target_found": false, "verified_at": "2026-01-01T12:07:00Z"}
+  ],
+  "images": [
+    {"image_id": "50000000-0000-0000-0000-000000000001", "camera_id": "10000000-0000-0000-0000-000000000001", "captured_at": "2026-01-01T12:00:00Z", "uploaded_at": "2026-01-01T12:01:00Z", "human_verified": true, "targets_detected": true, "number_detections": 2, "number_targets_detected": 2, "number_targets_verified": 1, "verification_id": "40000000-0000-0000-0000-000000000002"},
+    {"image_id": "50000000-0000-0000-0000-000000000002", "camera_id": null, "captured_at": "2026-01-01T12:02:00Z", "uploaded_at": "2026-01-01T12:03:00Z", "human_verified": true, "targets_detected": false, "number_detections": 0, "number_targets_detected": 0, "number_targets_verified": 0, "verification_id": "40000000-0000-0000-0000-000000000003"},
+    {"image_id": "50000000-0000-0000-0000-000000000003", "camera_id": null, "captured_at": "2026-01-01T12:03:00Z", "uploaded_at": "2026-01-01T12:04:00Z", "human_verified": false, "targets_detected": true, "number_detections": 1, "number_targets_detected": 1, "number_targets_verified": 0, "verification_id": null}
+  ],
+  "detections": [
+    {"detection_id": "60000000-0000-0000-0000-000000000001", "image_id": "50000000-0000-0000-0000-000000000001", "model_id": "20000000-0000-0000-0000-000000000001", "class_label": "dog", "confidence": 0.88, "x_min": 0.15, "y_min": 0.25, "width": 0.3, "height": 0.5, "human_verified": true, "verification_id": "40000000-0000-0000-0000-000000000001"},
+    {"detection_id": "60000000-0000-0000-0000-000000000002", "image_id": "50000000-0000-0000-0000-000000000001", "model_id": "20000000-0000-0000-0000-000000000001", "class_label": "bird", "confidence": 0.63, "x_min": 0.65, "y_min": 0.3, "width": 0.2, "height": 0.25, "human_verified": true, "verification_id": "40000000-0000-0000-0000-000000000002"},
+    {"detection_id": "60000000-0000-0000-0000-000000000003", "image_id": "50000000-0000-0000-0000-000000000003", "model_id": "20000000-0000-0000-0000-000000000001", "class_label": "dog", "confidence": 0.74, "x_min": 0.15, "y_min": 0.25, "width": 0.3, "height": 0.5, "human_verified": false, "verification_id": null}
+  ]
+}
