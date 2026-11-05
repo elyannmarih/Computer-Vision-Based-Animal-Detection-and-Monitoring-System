@@ -248,16 +248,24 @@ test("guide includes six steps and working links", async ({ page }) => {
   await page.goBack(); await page.getByRole("link", { name: "Try camera scan" }).click();
   await expect(page).toHaveURL(/\/camera$/);
 });
-test("routes fit viewport, load without runtime errors or browser credentials", async ({ page }) => {
-  const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
+test("routes fit viewport, load without runtime errors or browser credentials", async ({ context }) => {
   for (const route of ["/", "/upload", "/camera", "/how-to-use", "/results"]) {
-    const response = await page.goto(route); expect(response?.status()).toBe(200);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    expect(await page.content()).not.toMatch(/rtsp:\/\//i);
+    // Isolate page loads so a new document does not cancel the previous page's prefetches.
+    const page = await context.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", e => errors.push(e.message));
+    try {
+      const response = await page.goto(route); expect(response?.status()).toBe(200);
+      await expect(page.getByRole("main")).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      expect(await page.content()).not.toMatch(/rtsp:\/\//i);
+      const scripts = await page.locator("script[src]").evaluateAll(nodes => nodes.map(n => (n as HTMLScriptElement).src));
+      for (const src of scripts) expect(await (await page.request.get(src)).text()).not.toMatch(/rtsps?:\/\/[^\s"']+/i);
+      expect(errors, `Runtime errors while loading ${route}`).toEqual([]);
+    } finally {
+      await page.close();
+    }
   }
-  const scripts = await page.locator("script[src]").evaluateAll(nodes => nodes.map(n => (n as HTMLScriptElement).src));
-  for (const src of scripts) expect(await (await page.request.get(src)).text()).not.toMatch(/rtsps?:\/\/[^\s"']+/i);
-  expect(errors).toEqual([]);
 });
 
 test("narrow phone and tablet layouts fit all routes including results", async ({ page }) => {

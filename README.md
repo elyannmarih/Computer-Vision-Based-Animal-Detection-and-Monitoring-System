@@ -147,6 +147,16 @@ The positive fixture is the NASA astronaut image distributed by scikit-image; it
 
 Mypy checks the API and development database scripts, including unannotated function bodies. It is not a strict typing guarantee for every dependency: Ultralytics and Boto3 are excluded from dependency inspection because their integration does not provide usable type information. The offline evaluation script is covered by its unit tests, not this mypy configuration. Executed Phase III checks are recorded in `docs/phase-3-test-results.json`.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on pull requests targeting `main`, pushes to `main`, and manual dispatch. One Ubuntu 24.04 job installs Python 3.13, Node.js 22, CPU-only PyTorch, the backend dependencies, and frontend dependencies from `package-lock.json`. It creates a PostgreSQL 16 service with disposable test credentials; repository secrets, Neon, S3, and physical cameras are not required.
+
+The job runs Python unit tests, mypy, PostgreSQL/inference integration tests, ESLint, TypeScript, the Next.js production build, and both Playwright suites. Chromium, WebKit, and OpenCV system dependencies are installed explicitly. Ultralytics automatic package installation is disabled in CI; its `pi-heif` fallback is included in our requirements so corrupted-image handling works without installing packages during a test. Browser suites run sequentially with one worker in CI to keep CPU and memory use manageable. Any failed command fails the job, including commands whose output is saved with `tee`.
+
+Test logs, installed dependency versions, the browser report, and retained failure traces are uploaded for seven days, including when a test fails. Dependency installation requires internet access. The actions are pinned to commit SHAs, the workflow token has read-only repository permissions, and checkout does not retain Git credentials. This workflow only checks the application; container delivery is a separate Phase III milestone.
+
+No GitHub-hosted run has been triggered yet. The first remote run remains pending approval to push this branch and open the pull request. Local validation details are in `docs/phase-3-test-results.json`.
+
 ## Evaluating the detector
 
 `backend/evaluate.py` runs the application's detector, checks its output format, and calculates true positives, false positives, false negatives, precision, recall, and F1 for each class. It does not start cameras or write to the database. It uses all supported categories at confidence 0.25 without changing saved preferences.
