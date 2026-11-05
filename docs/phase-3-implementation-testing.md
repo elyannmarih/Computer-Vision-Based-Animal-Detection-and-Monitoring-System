@@ -2,7 +2,7 @@
 
 CIS 553: Software Engineering, Fall 2026  
 Elyann Soto and Evan Wilson  
-Status reviewed November 5, 2026; branch `codex/phase-3-implementation`
+Status reviewed November 5, 2026; branch `feat/phase-3-implementation`
 
 ## 1. Project Overview
 
@@ -109,10 +109,10 @@ The Phase II Gantt records planned responsibilities, not proof that work was com
 | Integration and refinement | Both authors appear in the integrated history. Elyann's later commits include detection/review fixes (`8b50351`), camera-state correction (`1ab98c1`), species selection (`95dd47d`), and consolidation of the retained model (`e1db3ab`). The Gantt lists image integration as shared work. |
 | Phase III validation and delivery | The new database, testing, CI, Docker, and delivery commits are recorded under Elyann's account: `3365a97`, `c4080c5`, `a416ffa`, `25368a5`, and `3bebf2b`. Evan's review is pending. The original Gantt assigned testing/mypy mainly to Evan and CI/Docker/deployment to both; this difference needs team confirmation before the final contribution statement is submitted. |
 
-On November 5, direct GitHub checks confirmed a private repository and two open pull requests: [PR #1](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/1), authored by Evan under `SleepingBear23`, and [PR #2](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/2) for Phase III. The earlier search that reported no PRs was incomplete. Its original audit snapshot remains in the test record, with a later correction. Existing authorship and commits are preserved.
+The repository remains private. [PR #1](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/1), authored by Evan under `SleepingBear23`, is closed; his backend work is included in the existing development history. [PR #3](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/3) contains the Phase III implementation. Existing authorship and commits are preserved.
 
-PR #2 targets `main` from the pushed `codex/phase-3-implementation` branch. Hosted checks have passed, and Evan is the requested reviewer; no review has been submitted as of this update. The review should cover database compatibility, inference and camera behavior, test isolation, delivery, and the contribution notes. Documentation follow-ups belong in this same PR. Merge remains pending review and approval; the planned Gantt is not used to rewrite recorded authorship.
+PR #3 targets `main` from the pushed `feat/phase-3-implementation` branch. Hosted checks have passed, and Evan is the requested reviewer; no review has been submitted as of this update. The review should cover database compatibility, inference and camera behavior, test isolation, delivery, and the contribution notes. Documentation follow-ups belong in this same PR. Merge remains pending review and approval; the planned Gantt is not used to rewrite recorded authorship.
 
 ## 11. Conclusion
 
-Detectra has a working local application, reproducible database examples, recorded automated tests, and a container delivery process validated locally and in GitHub Actions. The retained model and personal preferences are unchanged. The branch is pushed and PR #2 is open. Evan's review, merge approval, final delivery artifact publication, physical-camera validation, and the repository visibility decision remain pending. We are keeping the existing development history.
+Detectra has a working local application, reproducible database examples, recorded automated tests, and a container delivery process validated locally and in GitHub Actions. The retained model and personal preferences are unchanged. The branch is pushed and PR #3 is open. Evan's review, merge approval, final delivery artifact publication, physical-camera validation, and the repository visibility decision remain pending. We are keeping the existing development history.

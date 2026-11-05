@@ -3,7 +3,7 @@
     {
       "milestone": "Database setup and sample data",
       "base_commit": "2720cbdab74c6cec136318d17bfd311be2dda582",
-      "branch": "codex/phase-3-implementation",
+      "branch": "feat/phase-3-implementation",
       "status": "committed with user approval; not pushed",
       "runs": [
         {
@@ -141,7 +141,7 @@
     {
       "milestone": "Application testing and static analysis",
       "base_commit": "3365a97",
-      "branch": "codex/phase-3-implementation",
+      "branch": "feat/phase-3-implementation",
       "status": "committed with user approval; not pushed",
       "runs": [
         {
@@ -447,7 +447,7 @@
     {
       "milestone": "Continuous integration",
       "base_commit": "c4080c5",
-      "branch": "codex/phase-3-implementation",
+      "branch": "feat/phase-3-implementation",
       "status": "committed with user approval; not pushed",
       "workflow": ".github/workflows/ci.yml",
       "workflow_validation": {
@@ -769,7 +769,7 @@
     {
       "milestone": "Docker application stack and persistence",
       "base_commit": "a416ffa",
-      "branch": "codex/phase-3-implementation",
+      "branch": "feat/phase-3-implementation",
       "status": "committed with user approval; not pushed",
       "build": {
         "command": "docker compose --env-file <temporary test configuration> build backend frontend",
@@ -924,7 +924,7 @@
     {
       "milestone": "Automated Docker delivery",
       "base_commit": "25368a52dd48d8b8e0fa0b64d6796d1e940f3a30",
-      "branch": "codex/phase-3-implementation",
+      "branch": "feat/phase-3-implementation",
       "status": "committed with user approval; not pushed",
       "completed_at_utc": "2026-11-05T20:49:13.197408+00:00",
       "validation_environment": "Windows host with Docker Desktop running Linux amd64 containers",
@@ -1035,7 +1035,7 @@
     {
       "milestone": "Final documentation and publication audit",
       "base_commit": "3bebf2bf832431add9937e490997629fca0e9049",
-      "branch": "codex/phase-3-implementation",
+      "branch": "feat/phase-3-implementation",
       "status": "approved for commit; not pushed",
       "completed_at_utc": "2026-11-05T21:03:54.800287+00:00",
       "runs": [
@@ -1433,7 +1433,7 @@
     {
       "milestone": "Hosted CI and project status update",
       "reviewed_on": "2026-11-05",
-      "branch": "codex/phase-3-implementation",
+      "branch": "feat/phase-3-implementation",
       "tested_head_commit": "8d24056c8376646a2be1edd3086cb73417ce4bfc",
       "ci": {
         "run_id": 42122426016,
@@ -1493,5 +1493,13 @@
       },
       "record_scope": "Earlier milestones are dated snapshots. Their raw results are preserved; this entry updates the current status. Hosted tests cover the indicated commit, not these later documentation and ignore-rule edits."
     }
-  ]
+  ],
+  "current_review": {
+    "branch": "feat/phase-3-implementation",
+    "pull_request": 3,
+    "url": "https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/3",
+    "base": "main",
+    "reviewer": "SleepingBear23",
+    "status": "open; checks and review required before merge"
+  }
 }

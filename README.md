@@ -35,7 +35,7 @@ git clone https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-
 cd Computer-Vision-Based-Animal-Detection-and-Monitoring-System
 ```
 
-The repository is currently private, so cloning requires an authorized GitHub account. Phase III changes are on `codex/phase-3-implementation`; switch to that branch after it has been pushed. The Docker instructions below are an alternative to installing Python, Node.js, and PostgreSQL directly.
+The repository is currently private, so cloning requires an authorized GitHub account. Phase III changes are on `feat/phase-3-implementation`; switch to that branch to review the implementation. The Docker instructions below are an alternative to installing Python, Node.js, and PostgreSQL directly.
 
 ## Detection model
 
@@ -297,6 +297,6 @@ The frontend demo image and JPG/PNG/WebP fixtures are original synthetic shapes 
 
 The November 5, 2026 audit found no exposed live credentials in the scanned Git history. The historical Phase II PDF contains student contact emails, and Git retains normal author information; these are not credentials and are not scheduled for removal. Environment files and their local or production variants are ignored, while sanitized configuration examples remain tracked. The frontend dependency audit reports eight moderate findings in development tooling, all associated with the [minimatch advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249), and none in runtime dependencies. No forced dependency downgrade was applied. These results are a dated audit, not a guarantee that the project is free of vulnerabilities.
 
-The branch is pushed and hosted CI has passed. [PR #2](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/2) remains open for Evan's review before merging. Before submission, we still need to review the contribution table, produce the final delivery artifact, and decide on repository visibility. The repository remains private; no remote history rewrite or visibility change has been performed. History rewriting is not a requirement for running or reviewing the project.
+The branch is pushed and hosted CI has passed. [PR #3](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/3) remains open for Evan's review before merging. Before submission, we still need to review the contribution table, produce the final delivery artifact, and decide on repository visibility. The repository remains private; no remote history rewrite or visibility change has been performed. History rewriting is not a requirement for running or reviewing the project.
 
 Our interface design reference is available in [Figma](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=8-2).
