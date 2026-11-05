@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { detectionService, titleCase } from "@/lib/detection-service";
 import type { DetectorModel } from "@/types/detection";
 
-/** The server's detector models and the one in use, shared by the sidebar picker and the header badge. */
+/** Detector configuration used by the settings page. */
 export function useDetectorModels() {
   const [models, setModels] = useState<DetectorModel[] | null>(null);
   const [error, setError] = useState("");
@@ -18,8 +18,6 @@ export function useDetectorModels() {
       setError(response.error.message);
     }
   }, []);
-  const refresh = async () => apply(await detectionService.detectorModels());
-
   useEffect(() => {
     let current = true;
     detectionService.detectorModels().then((response) => current && apply(response));
@@ -27,15 +25,6 @@ export function useDetectorModels() {
       current = false;
     };
   }, [apply]);
-
-  async function select(version: string) {
-    setSwitching(true);
-    setError("");
-    const response = await detectionService.selectDetectorModel(version);
-    if (!response.ok) setError(response.error.message);
-    await refresh();
-    setSwitching(false);
-  }
 
   async function selectClasses(classes: string[]) {
     const active = models?.find((m) => m.active);
@@ -48,54 +37,46 @@ export function useDetectorModels() {
     setSwitching(false);
   }
 
-  return { models, active: models?.find((m) => m.active) ?? null, error, switching, select, selectClasses };
+  return { models, active: models?.find((m) => m.active) ?? null, error, switching, selectClasses };
 }
 
-type Props = ReturnType<typeof useDetectorModels> & { id: string };
+type Props = ReturnType<typeof useDetectorModels>;
 
-export default function ModelPicker({ id, models, active, error, switching, select, selectClasses }: Props) {
+export default function SpeciesPicker({ active, error, switching, selectClasses }: Props) {
   const selected = active?.selectedClasses ?? active?.classes ?? [];
+  const summary = active && selected.length === active.classes.length ? "All supported animals and people" : selected.length ? selected.map(titleCase).join(", ") : "None selected";
   return (
     <div>
-      <fieldset disabled={!active || switching} className="text-xs">
-        <legend className="text-[11px] font-medium">Detect species</legend>
-        <p className="my-2 text-[11px] text-[#747470]">Choose one or more. Applies to live video and new scans/uploads for all viewers.</p>
-        {active && <>
-          <label className="flex items-center gap-2 py-1 font-medium">
-            <input type="checkbox" checked={selected.length === active.classes.length}
-              disabled={selected.length === active.classes.length}
-              onChange={() => selectClasses(active.classes)} /> All supported classes
-          </label>
-          <div className="max-h-36 overflow-y-auto">
-            {active.classes.map((name) => <label key={name} className="flex items-center gap-2 py-1">
-              <input type="checkbox" checked={selected.includes(name)}
-                disabled={selected.length === 1 && selected.includes(name)}
+      <div className="mb-6">
+        <h2 className="text-base font-medium">Detection preferences</h2>
+        <p className="mt-2 text-sm text-[#747470]">Choose what to look for in your camera and images.</p>
+      </div>
+      <details className="group rounded-xl border border-[#deded9] bg-white">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 [&::-webkit-details-marker]:hidden">
+          <div className="min-w-0">
+            <span className="block text-xs text-[#747470]">Animals and people</span>
+            <span className="mt-1 block text-sm font-medium">{active ? summary : "Loading preferences..."}</span>
+          </div>
+          <span className="shrink-0 text-xs text-[#747470] group-open:hidden">Edit</span>
+          <span className="hidden shrink-0 text-xs text-[#747470] group-open:inline">Close</span>
+        </summary>
+        {active && <fieldset disabled={switching} className="border-t border-[#e9e9e5] px-5 pb-5 pt-4">
+          <legend className="sr-only">Select detection targets</legend>
+          <div className="mb-4 flex items-center justify-between text-xs">
+            <span className="text-[#747470]">Detection targets</span>
+            <div className="flex gap-4"><button type="button" onClick={() => selectClasses([])} disabled={!selected.length} className="underline underline-offset-4 disabled:opacity-40">Deselect all</button>
+            <button type="button" onClick={() => selectClasses(active.classes)} disabled={selected.length === active.classes.length} className="underline underline-offset-4 disabled:opacity-40">Select all</button></div>
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-3">
+            {active.classes.map((name) => <label key={name} className="flex cursor-pointer items-center gap-3 py-2 text-sm">
+              <input type="checkbox" className="h-4 w-4 accent-[#303c32]" checked={selected.includes(name)}
                 onChange={() => selectClasses(selected.includes(name) ? selected.filter((c) => c !== name) : [...selected, name])} />
               {titleCase(name)}
             </label>)}
           </div>
-        </>}
-      </fieldset>
-      <details className="mt-3">
-      <summary className="cursor-pointer text-[11px] text-[#747470]">Advanced: detection model</summary>
-      <label htmlFor={id} className="text-[11px] font-medium">Detection model</label>
-      <select
-        id={id}
-        value={active?.version ?? ""}
-        disabled={!models || switching}
-        onChange={(event) => select(event.target.value)}
-        className="mt-2 w-full rounded-md border border-[#deded9] bg-white px-2 py-2 text-xs disabled:opacity-50"
-      >
-        {!models && <option value="">{error ? "Unavailable" : "Loading…"}</option>}
-        {models && !active && <option value="">Stub (no model)</option>}
-        {models?.map((m) => (
-          <option key={m.version} value={m.version}>{m.title}</option>
-        ))}
-      </select>
+        </fieldset>}
       </details>
-      <p role={error ? "alert" : undefined} aria-live="polite" className={`mt-1 text-[11px] ${error ? "text-red-700" : "text-[#969691]"}`}>
-        {error || (switching ? "Applying…" : active ? `${selected.length} selected · ${active.title}` : "Loading detector…")}
-      </p>
+      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
     </div>
   );
 }

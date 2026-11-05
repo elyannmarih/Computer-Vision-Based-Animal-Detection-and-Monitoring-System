@@ -53,15 +53,6 @@
     "Woodpecker": "bird"
   },
   "added_at": "2026-10-24T18:38:04+00:00",
-  "eval_split": "lizard_detection test, lizard class only (IoU 0.5)",
-  "precision": 0.9545,
-  "recall": 0.375,
-  "lizard_eval": {
-    "precision": 0.9545,
-    "recall": 0.375,
-    "f1": 0.5385,
-    "tp": 21,
-    "fp": 1,
-    "fn": 35
-  }
+  "evaluation_file": "evaluation.json",
+  "evaluation_scope": "Historical validation only; partial annotations. No independent final-test certification."
 }

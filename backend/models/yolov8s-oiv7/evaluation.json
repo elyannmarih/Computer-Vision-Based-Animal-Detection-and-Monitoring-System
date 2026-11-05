@@ -1,0 +1,271 @@
+{
+  "date": "2026-11-05",
+  "decision": "retain_original_multiclass_model",
+  "model": "yolov8s-oiv7",
+  "weights_sha256": "4663086e1b8edbc4202a9ec589b03195ed149ef8aa8beeb4b503e0e35ff1731a",
+  "confidence": 0.25,
+  "imgsz": 640,
+  "nms_iou": 0.7,
+  "agnostic_nms": true,
+  "max_det": 300,
+  "independent_final_test": null,
+  "reason": "Original remains the supported multiclass choice; hybrid adds class conflicts and CPU cost without sufficient independent evidence.",
+  "application_evaluation": {
+    "model": "yolov8s-oiv7",
+    "weights_sha256": "4663086e1b8edbc4202a9ec589b03195ed149ef8aa8beeb4b503e0e35ff1731a",
+    "mapping_sha256": "24448fe26bc26dfb72a8ad33939bc88beadb97d36f930822f4c1ec7dcce46f22",
+    "manifest_sha256": "85a3cacfe67314ab837a35983af390f20ed2f81513ecacd5e8b7a06129d932d2",
+    "split": "val",
+    "images": 214,
+    "evaluation_scope": "Historical partial-annotation validation, NOT independent test",
+    "confidence": 0.25,
+    "matching_iou": 0.5,
+    "image_size": 640,
+    "all_supported_classes": true,
+    "classes": {
+      "bear": {
+        "tp": 9,
+        "fp": 0,
+        "fn": 9,
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666
+      },
+      "bird": {
+        "tp": 15,
+        "fp": 1,
+        "fn": 2,
+        "precision": 0.9375,
+        "recall": 0.8823529411764706,
+        "f1": 0.9090909090909091
+      },
+      "cat": {
+        "tp": 14,
+        "fp": 0,
+        "fn": 1,
+        "precision": 1.0,
+        "recall": 0.9333333333333333,
+        "f1": 0.9655172413793104
+      },
+      "deer": {
+        "tp": 13,
+        "fp": 0,
+        "fn": 6,
+        "precision": 1.0,
+        "recall": 0.6842105263157895,
+        "f1": 0.8125
+      },
+      "dog": {
+        "tp": 17,
+        "fp": 0,
+        "fn": 3,
+        "precision": 1.0,
+        "recall": 0.85,
+        "f1": 0.918918918918919
+      },
+      "fox": {
+        "tp": 8,
+        "fp": 0,
+        "fn": 7,
+        "precision": 1.0,
+        "recall": 0.5333333333333333,
+        "f1": 0.6956521739130435
+      },
+      "lizard": {
+        "tp": 22,
+        "fp": 0,
+        "fn": 39,
+        "precision": 1.0,
+        "recall": 0.36065573770491804,
+        "f1": 0.5301204819277109
+      },
+      "person": {
+        "tp": 24,
+        "fp": 0,
+        "fn": 9,
+        "precision": 1.0,
+        "recall": 0.7272727272727273,
+        "f1": 0.8421052631578947
+      },
+      "raccoon": {
+        "tp": 7,
+        "fp": 0,
+        "fn": 10,
+        "precision": 1.0,
+        "recall": 0.4117647058823529,
+        "f1": 0.5833333333333334
+      },
+      "snake": {
+        "tp": 6,
+        "fp": 3,
+        "fn": 8,
+        "precision": 0.6666666666666666,
+        "recall": 0.42857142857142855,
+        "f1": 0.5217391304347826
+      },
+      "squirrel": {
+        "tp": 13,
+        "fp": 0,
+        "fn": 1,
+        "precision": 1.0,
+        "recall": 0.9285714285714286,
+        "f1": 0.9629629629629629
+      }
+    },
+    "unscored_predictions": {
+      "snake": 2,
+      "dog": 1,
+      "squirrel": 3,
+      "bear": 1,
+      "lizard": 2,
+      "bird": 1,
+      "cat": 1,
+      "raccoon": 3,
+      "fox": 1
+    },
+    "precision_is_conditional": true,
+    "negatives": {
+      "images": 15,
+      "alarm_images": 0,
+      "false_boxes": 0
+    },
+    "actual_application_contracts_validated": 167,
+    "mean_inference_ms": 312.69417567370095,
+    "timing_scope": "Actual detector.detect: decode, EXIF conversion, inference and conversion; excludes source read/crop preparation, warmup, HTTP, storage and database."
+  },
+  "historical_hybrid_comparison": {
+    "scope": "Cached exploratory validation, not independent evaluation; same 214 historical images and original weights.",
+    "candidate": "size640-slice512-agnostic0-predictions-hybrid",
+    "candidate_config_sha256": "bcb6fbeb357ea2c496efd82147b067eabeebac8c825bf36aff61800a6774e593",
+    "candidate_predictions_sha256": "3c604240d2c22f812c9866454f1a7654b1fa82a02ae5d773407fcf0bf5787cc5",
+    "baseline_lizard": {
+      "tp": 22,
+      "fp": 0,
+      "fn": 39,
+      "precision": 1.0,
+      "recall": 0.36065573770491804,
+      "F1": 0.5301204819277109
+    },
+    "hybrid_lizard": {
+      "tp": 26,
+      "fp": 4,
+      "fn": 35,
+      "precision": 0.8666666666666667,
+      "recall": 0.4262295081967213,
+      "F1": 0.5714285714285714
+    },
+    "conditional_deployed_AP": {
+      "baseline_deployed": {
+        "AP50_95": 0.5765588620024524,
+        "AP50": 0.6548154815481548,
+        "AR50_95_max300": 0.5980825477746344
+      },
+      "hybrid_deployed": {
+        "AP50_95": 0.5763940806303609,
+        "AP50": 0.6587423403994535,
+        "AR50_95_max300": 0.6004670485197909
+      }
+    },
+    "AP_scope": "Both policies truncated at confidence .25 and filtered to annotated classes; not official Open Images/COCO mAP.",
+    "non_lizard_outputs_preserved": true,
+    "unscored_lizard_predictions": {
+      "baseline": 2,
+      "hybrid": 5
+    },
+    "paired_object_transitions": {
+      "(False, False)": 34,
+      "(False, True)": 5,
+      "(True, True)": 21,
+      "(True, False)": 1
+    },
+    "short_side_under_16px_at_640": {
+      "ground_truth": 2,
+      "baseline_tp": 0,
+      "hybrid_tp": 0
+    },
+    "native_COCO_small_lizard_ground_truth": 0,
+    "source_block_recall_difference_sensitivity_95": [
+      0.0,
+      0.11475409836065573
+    ],
+    "uncertainty_scope": "Five heterogeneous sources; sensitivity only, not an independent-camera confidence interval.",
+    "cpu_workflow": {
+      "scope": "Historical validation sample for workflow performance ONLY; two images per source plus both smallest misses, two trials, ABBA separate warmed processes; reverse image order in second trial. Eight CPU threads. Decode, all inference, merging and payload conversion included; model load/warmup, HTTP, storage, DB and UI excluded. RSS sampled at 10ms may miss transient peaks; OS peak working set also includes model loading/warmup. This small p95 is descriptive, not a deployment SLA.",
+      "summary": {
+        "baseline": {
+          "images": 12,
+          "measurements": 24,
+          "mean_ms": 370.3286792539681,
+          "median_ms": 358.7883000727743,
+          "p95_ms": 486.44363505300123,
+          "max_ms": 529.9773998558521,
+          "peak_sampled_rss_bytes": 630108160,
+          "peak_process_working_set_bytes": 633036800
+        },
+        "hybrid": {
+          "images": 12,
+          "measurements": 24,
+          "mean_ms": 5483.357091667131,
+          "median_ms": 5078.460150165483,
+          "p95_ms": 10274.905134690924,
+          "max_ms": 11388.561200350523,
+          "peak_sampled_rss_bytes": 669728768,
+          "peak_process_working_set_bytes": 671166464
+        }
+      },
+      "median_paired_slowdown": 12.604864024293597
+    }
+  },
+  "software_checks": {
+    "backend_tests_passed": 31,
+    "playwright_passed": 109,
+    "playwright_failed": 0,
+    "playwright_flaky": 0,
+    "typescript": "passed",
+    "eslint": "passed",
+    "production_build": "passed",
+    "read_only_api": {
+      "production_writes": false,
+      "camera_started": false,
+      "health_status": 200,
+      "detector_status": 200,
+      "model_versions": [
+        "yolov8s-oiv7"
+      ],
+      "required_tables_present": [
+        "cameras",
+        "detections",
+        "human_verifications",
+        "images",
+        "models",
+        "trusted_persons"
+      ]
+    },
+    "scope": "Backend storage/verification tests use mocks or in-memory facilities; browser tests use local fixtures. API health check only reads the configured database; no physical-camera test or production writes."
+  },
+  "runtime": {
+    "python": "3.13.2",
+    "torch": "2.15.0",
+    "torchvision": "0.29.2",
+    "ultralytics": "8.4.201",
+    "numpy": "2.5.4",
+    "pillow": "13.0.0",
+    "fastapi": "0.162.0",
+    "uvicorn": "0.54.0"
+  },
+  "limitations": [
+    "Historical data influenced prior decisions; no independent final-test claim.",
+    "Open Images coverage is partial. Excluded predictions are reported, not treated as correct or absent.",
+    "Some source taxonomy and boxes require adjudication; no post-hoc relabeling was used to improve scores.",
+    "Zero alarms on 15 examined negatives is not a population false-alarm guarantee.",
+    "CPU measurements do not include HTTP, storage, database or camera acquisition."
+  ],
+  "reproduce": "backend/evaluate.py with the same manifest, all categories, .25 confidence and --allow-partial-annotations. For new data require complete_annotations and verified negatives; independently audit provenance.",
+  "archival_evidence": {
+    "manifest_sha256": "85a3cacfe67314ab837a35983af390f20ed2f81513ecacd5e8b7a06129d932d2",
+    "historical_review_sha256": "324186908be619aa3a91eb648addc1268bb274ee0a34f02accd85f89c6f17f2a",
+    "full_application_result_sha256": "c42a44cf8386bff542db9f9219c21fe1a79d189c387019a55846fd3df8612905",
+    "runtime_tests_sha256": "1a1edcc722d9bb63ed77aebccc1e9e4b08f01386ec40fc4c5b5894ef5377aa65",
+    "playwright_json_sha256": "933769a7719f505a83f4fddc6fd7a36da938c9dd8a05f18891887e267ddac0a3"
+  }
+}

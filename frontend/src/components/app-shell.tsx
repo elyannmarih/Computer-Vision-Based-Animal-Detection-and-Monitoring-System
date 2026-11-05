@@ -10,15 +10,15 @@ import {
   House,
   Image as ImageIcon,
   ScanLine,
+  Settings,
 } from "lucide-react";
-import ModelPicker, { useDetectorModels } from "@/components/model-picker";
-import BackendStatus from "@/components/backend-status";
 
 const links = [
   { href: "/", label: "Home", icon: House },
   { href: "/upload", label: "Image analysis", icon: ImageIcon },
   { href: "/camera", label: "Camera scan", icon: Camera },
   { href: "/how-to-use", label: "How to use", icon: BookOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function AppShell({
@@ -27,7 +27,6 @@ export default function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const detector = useDetectorModels();
 
   const pageTitle =
   pathname === "/upload"
@@ -36,7 +35,7 @@ export default function AppShell({
       ? "Camera scan"
       : pathname === "/results"
         ? "Detection results"
-        : pathname === "/how-to-use" ? "How to use" : "Overview";
+        : pathname === "/settings" ? "Settings" : pathname === "/how-to-use" ? "How to use" : "Overview";
 
   return (
     <div className="min-h-screen bg-[#f6f6f4] text-[#171717]">
@@ -77,10 +76,6 @@ export default function AppShell({
           })}
         </nav>
 
-        <div className="mt-auto border-t border-[#e9e9e5] px-[10px] pt-[18px]">
-          <ModelPicker id="model-picker-sidebar" {...detector} />
-          <BackendStatus />
-        </div>
       </aside>
 
       <div className="min-h-screen md:ml-[248px]">
@@ -91,10 +86,6 @@ export default function AppShell({
             </Link>
             <span className="hidden text-xs font-medium sm:inline">{pageTitle}</span>
           </div>
-          <span className="flex items-center gap-[9px] text-[11px] text-[#747470]">
-            <span className={`h-[6px] w-[6px] rounded-full ${detector.active ? "bg-green-600" : "bg-[#747470]"}`} />
-            {detector.active ? `Detecting: ${detector.active.title}` : "Animal monitoring"}
-          </span>
         </header>
 
         <nav aria-label="Mobile navigation" className="flex flex-wrap gap-4 border-b border-[#deded9] px-6 py-3 text-xs md:hidden">
@@ -104,9 +95,6 @@ export default function AppShell({
             </Link>
           ))}
         </nav>
-        <div className="border-b border-[#deded9] px-6 py-3 md:hidden">
-          <ModelPicker id="model-picker-mobile" {...detector} />
-        </div>
 
         <div id="main-content" tabIndex={-1}>{children}</div>
       </div>

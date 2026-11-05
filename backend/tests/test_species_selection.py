@@ -21,7 +21,7 @@ class SpeciesSelectionTests(unittest.TestCase):
         detector.select_classes("test", ["dog", "lizard"])
         self.assertEqual(detector.selected_classes(self.model), ["dog", "lizard"])
         before = self.path.read_text()
-        for version, classes in [("other", ["dog"]), ("test", []), ("test", ["cat"]), ("test", ["dog", "dog"])]:
+        for version, classes in [("other", ["dog"]), ("test", ["cat"]), ("test", ["dog", "dog"])]:
             with self.assertRaises(ValueError):
                 detector.select_classes(version, classes)
         self.assertEqual(self.path.read_text(), before)
@@ -38,3 +38,13 @@ class SpeciesSelectionTests(unittest.TestCase):
 
     def test_default_includes_all_supported_classes(self):
         self.assertEqual(detector.selected_classes(self.model), ["dog", "lizard", "person"])
+
+    def test_empty_selection_is_preserved_and_does_not_predict(self):
+        detector.select_classes("test", [])
+        self.assertEqual(detector.selected_classes(self.model), [])
+        self.assertIn('"test": []', self.path.read_text())
+        yolo = MagicMock()
+        yolo.names = {0: "Dog", 1: "Lizard"}
+        with patch.object(detector, "_yolo", return_value=yolo):
+            self.assertEqual(detector._predict(object(), self.model), [])
+        yolo.predict.assert_not_called()

@@ -213,25 +213,31 @@ test("results link for a missing image explains the error", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Couldn't load this result" })).toBeVisible();
   await expect(page.getByRole("main").getByRole("alert")).toContainText("could not be found");
 });
-test("model picker shows the active model and switches it", async ({ page }) => {
-  let active = "yolo11n-test";
-  const models = [{ version: "dog-yolo11s", title: "Dogs", classes: ["dog"], precision: null }, { version: "yolo11n-test", title: "Lizards", classes: ["lizard"], precision: 0.79 }];
-  const list = () => models.map(m => ({ ...m, active: m.version === active }));
+test("settings selects species without exposing a model switch", async ({ page }) => {
+  let selectedClasses = ["dog", "lizard"];
+  const model = () => ({ version: "yolov8s-oiv7", title: "Animals and people", classes: ["dog", "lizard"], selectedClasses, precision: null, active: true });
   await page.route("**/api/detectra/detector", async route => {
-    if (route.request().method() === "PUT") { active = route.request().postDataJSON().version; return route.fulfill({ json: { ok: true, data: list().find(m => m.active) } }); }
-    return route.fulfill({ json: { ok: true, data: list() } });
+    if (route.request().method() === "PATCH") {
+      selectedClasses = route.request().postDataJSON().classes;
+      return route.fulfill({ json: { ok: true, data: model() } });
+    }
+    return route.fulfill({ json: { ok: true, data: [model()] } });
   });
-  await page.goto("/");
-  const picker = page.locator(test.info().project.name.startsWith("mobile") ? "#model-picker-mobile" : "#model-picker-sidebar");
-  await picker.locator("xpath=..").locator("summary").click();
-  await expect(picker).toHaveValue("yolo11n-test");
-  await expect(page.getByText("Detecting: Lizards")).toBeVisible();
-  const switched = page.waitForRequest(r => r.url().endsWith("/api/detectra/detector") && r.method() === "PUT");
-  await picker.selectOption({ label: "Dogs" });
-  expect((await switched).postDataJSON()).toEqual({ version: "dog-yolo11s" });
-  await expect(picker).toHaveValue("dog-yolo11s");
-  await expect(page.getByText("Detecting: Dogs")).toBeVisible();
-  await expect(picker.locator("xpath=../..").getByText("1 selected · Dogs")).toBeVisible();
+  await page.goto("/settings");
+  await expect(page.getByText("All supported animals and people")).toBeVisible();
+  await expect(page.getByRole("combobox")).toHaveCount(0);
+  await expect(page.getByText("Model options", { exact: true })).toHaveCount(0);
+  await page.locator("summary").click();
+  await page.getByRole("checkbox", { name: "Dog", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: "Dog", exact: true })).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Lizard", exact: true })).toBeEnabled();
+
+  expect(selectedClasses).toEqual(["lizard"]);
+  await page.getByRole("button", { name: "Deselect all", exact: true }).click();
+  await expect(page.getByText("None selected", { exact: true })).toBeVisible();
+  expect(selectedClasses).toEqual([]);
+  await page.getByRole("button", { name: "Select all", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: "Dog", exact: true })).toBeChecked();
 });
 test("guide includes six steps and working links", async ({ page }) => {
   await page.goto("/how-to-use");

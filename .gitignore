@@ -226,12 +226,10 @@ __marimo__/
 # Locally stored images (backend without S3)
 backend/uploads/
 
-# Lizard detector training (dataset downloads and run outputs; trained models in backend/models/ are kept)
-backend/training/datasets/
-backend/training/runs/
-backend/training/*.log
+# Research data and experiments are archived outside the application repository.
+backend/training/
 *.pt
-!backend/models/**/*.pt
+!backend/models/yolov8s-oiv7/model.pt
 
 # The detector model last picked in the app (each machine keeps its own)
 backend/models/selected.txt

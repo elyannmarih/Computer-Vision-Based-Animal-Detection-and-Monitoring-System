@@ -26,9 +26,9 @@ export async function PATCH(request: Request) {
     let body;
     try { body = await request.json(); } catch { return failure("Invalid species selection.", 400, "invalid-input"); }
     if (!body || typeof body.version !== "string" || !MODEL_VERSION_PATTERN.test(body.version)
-      || !Array.isArray(body.classes) || body.classes.length < 1 || body.classes.length > 100
+      || !Array.isArray(body.classes) || body.classes.length > 100
       || !body.classes.every((c: unknown) => typeof c === "string" && LABEL_PATTERN.test(c))
-      || new Set(body.classes).size !== body.classes.length) return failure("Choose one or more species.", 400, "invalid-input");
+      || new Set(body.classes).size !== body.classes.length) return failure("Choose supported species.", 400, "invalid-input");
     const response = await backendFetch("/detector", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: body.version, classes: body.classes }) });
     if (!response.ok) return failure("Could not apply species. Reload the detector and try again.", response.status === 422 ? 422 : 502);
     return ok(detectorModel(await response.json()));

@@ -11,7 +11,7 @@ with patch("dotenv.load_dotenv", return_value=False):
 
 class WeightsPathTests(unittest.TestCase):
     def test_apostrophe_in_the_project_path_is_not_passed_to_ultralytics(self):
-        source = Path(__file__).resolve().parents[1] / "models" / "yolo11n-20261024-110930" / "model.pt"
+        source = Path(__file__).resolve().parents[1] / "models" / "yolov8s-oiv7" / "model.pt"
         self.assertTrue(source.is_file())
         opened = weights_path(source)
         self.assertNotIn("'", opened)

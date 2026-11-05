@@ -1,22 +1,12 @@
-"""Lizard detector.
+"""Detectra's multiclass YOLO detector, shared by uploads and camera scans.
 
-Runs YOLO models: trained by training/train_lizard.py, or pretrained ones added by
-training/add_pretrained.py (e.g. the dog model). Each model lives in its own
-folder, models/<name>/ (model.pt + model.json with its title and metrics), and
-its folder name is the version recorded in the models table. At startup the
-model used is LIZARD_MODEL if set, else the one last picked in the app
-(models/selected.txt), else the one named in models/active.txt; `use_model`
-switches it while the app runs (the app's picker calls PUT /detector).
-
-With no model configured, `detect` falls back to a STUB that returns plausible,
-deterministic fake detections (the same image always gives the same result)
-under version "stub-0.1", so the rest of the pipeline still works.
+The bundled model is selected by models/active.txt. Local configuration may
+override it; unavailable weights fail explicitly instead of producing fake results.
+Species preferences filter the supported classes without changing the weights.
 """
-import hashlib
 import json
 import logging
 import os
-import random
 import shutil
 import threading
 from dataclasses import dataclass, field
@@ -47,7 +37,7 @@ _selection_lock = threading.Lock()
 
 def selected_classes(model):
     saved = _selected_classes.get(model.version)
-    if not isinstance(saved, list) or not saved or not all(c in model.classes for c in saved):
+    if not isinstance(saved, list) or not all(c in model.classes for c in saved):
         return model.classes
     return list(saved)
 
@@ -57,8 +47,8 @@ def select_classes(version: str, classes: list[str]):
         model = active()
         if version != model.version:
             raise ValueError("The active model changed; reload the selection")
-        if not classes or len(set(classes)) != len(classes) or not set(classes).issubset(model.classes):
-            raise ValueError("Choose at least one supported class, without duplicates")
+        if len(set(classes)) != len(classes) or not set(classes).issubset(model.classes):
+            raise ValueError("Choose supported classes without duplicates")
         updated = {**_selected_classes, version: sorted(classes)}
         temporary = CLASSES_FILE.with_suffix(".tmp")
         temporary.write_text(json.dumps(updated, indent=2) + "\n")
@@ -70,13 +60,13 @@ def select_classes(version: str, classes: list[str]):
 @dataclass(frozen=True)
 class Model:
     version: str  # folder name under models/
-    precision: float | None = None  # measured on held-out images when the model was trained
+    precision: float | None = None  # only populated when its evaluation scope is known
     info: dict = field(default_factory=dict, compare=False)  # everything in model.json
-    weights: Path | None = None  # None for the stub
+    weights: Path | None = None
 
     @property
     def title(self) -> str:
-        """The name shown in the app's model picker."""
+        """The model's display name."""
         return self.info.get("title") or self.version
 
     @property
@@ -85,9 +75,6 @@ class Model:
         if "class_map" in self.info:
             return sorted(set(self.info["class_map"].values()))
         return sorted({label(n) for n in self.info.get("classes", {}).values()}) if self.weights else [TARGET_LABEL]
-
-
-STUB = Model("stub-0.1")
 
 
 @dataclass
@@ -180,7 +167,7 @@ def detect(image: bytes, model: Model | None = None) -> list[Detection]:
     """Run `model` (default: the active one) on an image. Pass the model to know which one produced the result."""
     model = model or _active
     if model.weights is None:
-        return _stub_detect(image)
+        raise ValueError("Detection requires real model weights")
 
     # Browsers apply EXIF rotation when showing the image, so boxes must be in that orientation too
     return _predict(ImageOps.exif_transpose(Image.open(BytesIO(image))).convert("RGB"), model)
@@ -190,7 +177,7 @@ def detect_frame(frame, model: Model | None = None) -> list[Detection]:
     """Run `model` (default: the active one) on a video frame, a BGR numpy array as OpenCV reads it."""
     model = model or _active
     if model.weights is None:
-        return _stub_detect(frame.tobytes()[:1 << 16])
+        raise ValueError("Detection requires real model weights")
     return _predict(frame, model)
 
 
@@ -208,7 +195,8 @@ def _predict(picture, model: Model) -> list[Detection]:
         return []
     options = {"classes": class_ids, "agnostic_nms": True} if class_map else {"classes": class_ids}
     with _lock:
-        result = yolo.predict(picture, conf=CONFIDENCE, verbose=False, **options)[0]
+        result = yolo.predict(picture, imgsz=640, conf=CONFIDENCE, iou=0.7,
+                              max_det=300, verbose=False, **options)[0]
 
     detections = []
     for (x1, y1, x2, y2), conf, cls in zip(
@@ -222,22 +210,6 @@ def _predict(picture, model: Model) -> list[Detection]:
             y_min=round(y1, 4),
             width=round(x2 - x1, 4),
             height=round(y2 - y1, 4),
-        ))
-    return sorted(detections, key=lambda d: d.confidence, reverse=True)
-
-
-def _stub_detect(image: bytes) -> list[Detection]:
-    rng = random.Random(hashlib.sha256(image).digest())
-    detections = []
-    for _ in range(rng.choice([0, 1, 1, 2, 2, 3])):
-        width, height = round(rng.uniform(0.08, 0.35), 4), round(rng.uniform(0.08, 0.35), 4)
-        detections.append(Detection(
-            class_label=TARGET_LABEL,
-            confidence=round(rng.uniform(0.55, 0.98), 4),
-            x_min=round(rng.uniform(0, 1 - width), 4),
-            y_min=round(rng.uniform(0, 1 - height), 4),
-            width=width,
-            height=height,
         ))
     return sorted(detections, key=lambda d: d.confidence, reverse=True)
 
@@ -257,8 +229,7 @@ def _startup_model() -> Model:
             log.warning("The model picked in the app, %r, no longer exists; using models/active.txt.", name)
     if name := _read(MODELS_DIR / "active.txt"):
         return load_model(name)
-    log.warning("No lizard model configured (LIZARD_MODEL or %s); using stub detections.", MODELS_DIR / "active.txt")
-    return STUB
+    raise ValueError("No detector configured; restore models/active.txt and its model weights")
 
 
 _active = _startup_model()

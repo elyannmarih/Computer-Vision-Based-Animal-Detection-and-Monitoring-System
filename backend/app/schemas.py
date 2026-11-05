@@ -264,4 +264,4 @@ class DetectorSelect(BaseModel):
 
 class DetectorClasses(BaseModel):
     version: str
-    classes: list[str] = Field(min_length=1, max_length=100)
+    classes: list[str] = Field(max_length=100)
