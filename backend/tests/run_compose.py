@@ -25,6 +25,8 @@ FIXTURE = Path(__file__).parent / 'fixtures/astronaut.png'
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--report', type=Path, help='Write a JSON result outside the application volumes.')
+    parser.add_argument('--compose-file', type=Path, default=ROOT / 'compose.yaml',
+                        help='Use the repository configuration or a generated delivery bundle.')
     args = parser.parse_args()
     project = 'detectra_test_' + uuid4().hex
     checks = []
@@ -44,7 +46,7 @@ def main():
         environment = {**os.environ, 'DETECTRA_DB_PASSWORD': password, 'DETECTRA_WEB_PORT': str(port),
                        'DETECTRA_CAMERA_RTSP_URL': '', 'DETECTRA_CAMERA_SAVE_INTERVAL': '0',
                        'DETECTRA_CAMERA_NAME': 'Test camera (disabled)', 'COMPOSE_PROFILES': ''}
-        command = ['docker', 'compose', '-f', str(ROOT / 'compose.yaml'), '--project-name', project, '--env-file', str(env_file)]
+        command = ['docker', 'compose', '-f', str(args.compose_file.resolve()), '--project-name', project, '--env-file', str(env_file)]
 
         def compose(*arguments):
             result = subprocess.run([*command, *arguments], cwd=ROOT, env=environment,
@@ -60,14 +62,24 @@ def main():
                 "SELECT json_build_object('images',(SELECT count(*) FROM images),"
                 "'detections',(SELECT count(*) FROM detections),'reviews',(SELECT count(*) FROM human_verifications));"))
 
+        cleanup_allowed = False
         try:
             compose('config', '--quiet')
+            configuration = json.loads(compose('config', '--format', 'json'))
+            for volume in configuration.get('volumes', {}).values():
+                if volume.get('external') or not volume.get('name', '').startswith(project + '_'):
+                    raise RuntimeError('Smoke tests require volumes owned by their temporary project.')
+            cleanup_allowed = True
             compose('up', '--detach', '--wait', '--wait-timeout', '180', '--no-build', '--pull', 'never')
             first_ids = compose('ps', '-q').splitlines()
+            database_id = compose('ps', '-q', 'db').strip()
+            database_info = json.loads(subprocess.check_output(['docker', 'inspect', database_id], text=True))[0]
+            report['images'] = {'db': database_info['Image']}
             passed('All three services start healthy with a new database')
             for service in ('frontend', 'backend'):
                 container = compose('ps', '-q', service).strip()
                 info = json.loads(subprocess.check_output(['docker', 'inspect', container], text=True))[0]
+                report.setdefault('images', {})[service] = info['Image']
                 assert info['Config']['User'] not in ('', 'root', '0')
                 assert info['HostConfig']['ReadonlyRootfs']
                 bindings = info['HostConfig']['PortBindings'] or {}
@@ -162,8 +174,15 @@ def main():
                 # This random project was created above; never remove another project's volumes.
                 if not re.fullmatch(r'detectra_test_[0-9a-f]{32}', project):
                     raise RuntimeError('Unexpected test project name; cleanup refused.')
-                compose('down', '--volumes', '--remove-orphans')
-                report['cleanup'] = 'Temporary project containers, networks and volumes removed'
+                if cleanup_allowed:
+                    compose('down', '--volumes', '--remove-orphans')
+                    report['cleanup'] = 'Temporary project containers, networks and volumes removed'
+                else:
+                    report['cleanup'] = 'Configuration rejected before creating resources'
+            except Exception:
+                report['status'] = 'failed'
+                report['cleanup'] = 'Cleanup failed; inspect the temporary project before removing it'
+                raise
             finally:
                 report['completed_at_utc'] = datetime.now(timezone.utc).isoformat()
                 if args.report:

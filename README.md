@@ -191,9 +191,41 @@ The smoke test requires the backend development dependencies and creates a rando
 
 The job runs Python unit tests, mypy, PostgreSQL/inference integration tests, ESLint, TypeScript, the Next.js production build, and both Playwright suites. Chromium, WebKit, and OpenCV system dependencies are installed explicitly. Ultralytics automatic package installation is disabled in CI; its `pi-heif` fallback is included in our requirements so corrupted-image handling works without installing packages during a test. Browser suites run sequentially with one worker in CI to keep CPU and memory use manageable. Any failed command fails the job, including commands whose output is saved with `tee`.
 
-Test logs, installed dependency versions, the browser report, and retained failure traces are uploaded for seven days, including when a test fails. Dependency installation requires internet access. The actions are pinned to commit SHAs, the workflow token has read-only repository permissions, and checkout does not retain Git credentials. This workflow only checks the application; container delivery is a separate Phase III milestone.
+Test logs, installed dependency versions, the browser report, and retained failure traces are uploaded for seven days, including when a test fails. Dependency installation requires internet access. The actions are pinned to commit SHAs, the workflow token has read-only repository permissions, and checkout does not retain Git credentials. The Docker delivery job starts only after these application checks pass.
 
 No GitHub-hosted run has been triggered yet. The first remote run remains pending approval to push this branch and open the pull request. Local validation details are in `docs/phase-3-test-results.json`.
+
+## Delivery
+
+The delivery job builds both application images with the checked-out commit recorded in their labels, pulls PostgreSQL, and runs the Docker smoke test. It then packages those exact tested image IDs, verifies and reloads the archive, and runs the smoke test again using the packaged Compose file with builds and pulls disabled. Pull requests validate the complete process. A successful push to `main`, or a manual workflow run on `main`, also uploads a downloadable `detectra-<commit>-linux-amd64-<attempt>` artifact for seven days.
+
+The bundle contains `images.tar.gz`, a Compose file without build instructions, the database schema, `.env.compose.example`, `START.txt`, a manifest with the revision and image IDs, the source smoke-test report, and `SHA256SUMS`. PostgreSQL is included unchanged under a versioned local tag, so starting a downloaded bundle does not require fetching images or rebuilding the source. Application images and the database image receive commit-specific tags; saved database records, uploads, preferences and real configuration files are not included.
+
+Download and extract the artifact from the GitHub Actions run, check its files against `SHA256SUMS`, and follow `START.txt`. In PowerShell, `Get-FileHash -Algorithm SHA256 images.tar.gz` prints the archive's checksum. From a repository checkout with the development dependencies installed, `python scripts/delivery.py verify --bundle <extracted-folder>` checks every listed file. Then, inside the extracted folder:
+
+```powershell
+docker load --input images.tar.gz
+Copy-Item .env.compose.example .env.compose
+# Set your local database password in .env.compose.
+docker compose --env-file .env.compose up -d --wait --no-build --pull never
+docker compose --env-file .env.compose run --rm seed
+```
+
+Open `http://localhost:3000`. This delivery currently targets Linux amd64 containers and local access. No GHCR publication, GitHub Release publication, public deployment or physical-camera capture is configured. Those external actions remain subject to approval. GitHub artifact upload and hosted execution have not been tested remotely yet.
+
+To reproduce packaging locally from a clean, committed checkout:
+
+```powershell
+$env:DETECTRA_REVISION = (git rev-parse HEAD).Trim()
+docker compose --env-file .env.compose build backend frontend
+docker compose --env-file .env.compose pull db
+& $python backend/tests/run_compose.py --report "$env:TEMP/detectra-source-smoke.json"
+& $python scripts/delivery.py package --output "$env:TEMP/detectra-delivery" --smoke-report "$env:TEMP/detectra-source-smoke.json"
+& $python scripts/delivery.py load --bundle "$env:TEMP/detectra-delivery"
+& $python backend/tests/run_compose.py --compose-file "$env:TEMP/detectra-delivery/compose.yaml" --report "$env:TEMP/detectra-bundle-smoke.json"
+```
+
+Choose a new output directory for each bundle; the packaging command refuses to overwrite an existing one. It also rejects a dirty working tree, mismatched revision labels, and image IDs that differ from the smoke report. For local development checks only, `--allow-dirty` creates a clearly marked development preview with `-dev` image tags. Before replacing an existing installation, back up its volumes, retain its `.env.compose`, and deliberately use the same Compose project name to keep its data. The included schema initializes empty databases; it is not an automatic migration system for future schema changes.
 
 ## Evaluating the detector
 

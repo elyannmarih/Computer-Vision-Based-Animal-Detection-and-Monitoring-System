@@ -770,7 +770,7 @@
       "milestone": "Docker application stack and persistence",
       "base_commit": "a416ffa",
       "branch": "codex/phase-3-implementation",
-      "status": "implemented and locally verified; awaiting commit approval",
+      "status": "committed with user approval; not pushed",
       "build": {
         "command": "docker compose --env-file <temporary test configuration> build backend frontend",
         "exit_code": 0,
@@ -918,6 +918,117 @@
         "No physical camera capture, public deployment or image publication was performed.",
         "Authentication is not implemented; the Compose frontend binds only to localhost.",
         "Versioned delivery artifacts and final documentation remain for subsequent milestones."
+      ],
+      "commit": "25368a5"
+    },
+    {
+      "milestone": "Automated Docker delivery",
+      "base_commit": "25368a52dd48d8b8e0fa0b64d6796d1e940f3a30",
+      "branch": "codex/phase-3-implementation",
+      "status": "implemented and locally verified; awaiting commit approval",
+      "completed_at_utc": "2026-11-05T20:49:13.197408+00:00",
+      "validation_environment": "Windows host with Docker Desktop running Linux amd64 containers",
+      "source_smoke": {
+        "project": "detectra_test_7b9aee6478f7402482367322827d25f9",
+        "started_at_utc": "2026-11-05T20:41:43.743516+00:00",
+        "checks": [
+          "All three services start healthy with a new database",
+          "Non-root applications, read-only code, loopback access and unchanged bundled weights",
+          "Local-only seed creates fixtures once without duplicate records",
+          "Standalone pages, static assets and frontend-to-backend health proxy work",
+          "Real YOLO upload persists and its image is served through the frontend proxy",
+          "Feedback is retrieved from PostgreSQL and corrupt uploads create no rows",
+          "Frontend reports backend failure and recovers after restart",
+          "Images, database records, feedback and preferences survive container replacement"
+        ],
+        "images": {
+          "db": "sha256:33f923b05f64ca54ac4401c01126a6b92afe839a0aa0a52bc5aeb5cc958e5f20",
+          "frontend": "sha256:d44ea800dd8ff1b8069f91b0fb10013375008ed1131c2419b87c54c24655beeb",
+          "backend": "sha256:208e04d5d5ba75c033f31bb2b7948aefe91062c27211f83d0650e22c347dced3"
+        },
+        "status": "passed",
+        "cleanup": "Temporary project containers, networks and volumes removed",
+        "completed_at_utc": "2026-11-05T20:42:59.723992+00:00"
+      },
+      "packaged_smoke": {
+        "project": "detectra_test_ab311359b5c642179580c0f807f2e49b",
+        "started_at_utc": "2026-11-05T20:47:34.191149+00:00",
+        "checks": [
+          "All three services start healthy with a new database",
+          "Non-root applications, read-only code, loopback access and unchanged bundled weights",
+          "Local-only seed creates fixtures once without duplicate records",
+          "Standalone pages, static assets and frontend-to-backend health proxy work",
+          "Real YOLO upload persists and its image is served through the frontend proxy",
+          "Feedback is retrieved from PostgreSQL and corrupt uploads create no rows",
+          "Frontend reports backend failure and recovers after restart",
+          "Images, database records, feedback and preferences survive container replacement"
+        ],
+        "images": {
+          "db": "sha256:33f923b05f64ca54ac4401c01126a6b92afe839a0aa0a52bc5aeb5cc958e5f20",
+          "frontend": "sha256:d44ea800dd8ff1b8069f91b0fb10013375008ed1131c2419b87c54c24655beeb",
+          "backend": "sha256:208e04d5d5ba75c033f31bb2b7948aefe91062c27211f83d0650e22c347dced3"
+        },
+        "status": "passed",
+        "cleanup": "Temporary project containers, networks and volumes removed",
+        "completed_at_utc": "2026-11-05T20:48:47.544039+00:00"
+      },
+      "delivery": {
+        "development_preview": true,
+        "reason": "The milestone has not been committed yet. Local packaging explicitly used --allow-dirty and -dev image tags; CI requires a clean checkout.",
+        "archive_bytes": 856989251,
+        "archive_sha256": "d3e57bde98ad2b11036409815af2845422e20dd18b5a194edcbd57036f0139c2",
+        "checksums_verified": 7,
+        "image_load": "Removed only the three newly created preview tags, loaded the archive, and verified all three restored image IDs against the manifest.",
+        "packaged_start": "All eight smoke checks passed using the packaged Compose file with --no-build and --pull never.",
+        "contents": [
+          ".env.compose.example",
+          "SHA256SUMS",
+          "START.txt",
+          "backend/database/schema.sql",
+          "compose.yaml",
+          "images.tar.gz",
+          "manifest.json",
+          "smoke-test.json"
+        ],
+        "runtime_data": "Database contents, uploads, saved preferences and real environment files are excluded."
+      },
+      "guard_checks": {
+        "status": "passed",
+        "checks": [
+          "All seven bundle checksums pass",
+          "Altered bundle content is rejected",
+          "Untested image ID is rejected before output creation",
+          "Dirty working tree is rejected without explicit development-preview option",
+          "Smoke runner rejects external volumes before creating or removing resources"
+        ]
+      },
+      "static_validation": {
+        "actionlint": "1.7.12: passed with no diagnostics",
+        "python_syntax": "Both delivery scripts parsed successfully",
+        "git_diff_check": "passed"
+      },
+      "logs_sha256": {
+        "build.log": "5835bcd60c76aa63806e57ea3811b4711b1f6345bdade320b7ec92519fd73c8f",
+        "source-smoke.log": "c6c6bebd4575cab7a397badac5d08a9c5a9413a474500d3e5a58799d4b001f3e",
+        "package.log": "c9fcb20deb37fb6664e9034bf0474f18f9ddadb3e90f910bd2cff015b1483459",
+        "load.log": "bd71aa0dcb8c83835be0ae79f0901b45270673bd3799583932f43a9b1c394639",
+        "bundle-smoke.log": "c6c6bebd4575cab7a397badac5d08a9c5a9413a474500d3e5a58799d4b001f3e",
+        "dirty-guard.log": "ae2a600890c7359082b2c9a67dfc66a1b39ca6979427fd3c96592957e5c7ad58",
+        "volume-guard.log": "1a354dd5de7bc4a7d0e2b71867fc8d761f68c9d0119741b001b8f2b399e28dc2",
+        "actionlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "preservation": {
+        "original_model_weights": "SHA-256 unchanged",
+        "original_active_and_selected_preferences": "SHA-256 unchanged",
+        "shared_database": "Not accessed",
+        "test_resources": "Both temporary Compose projects removed their own containers, networks and volumes."
+      },
+      "limitations": [
+        "No GitHub-hosted run or artifact upload has occurred; pushing the branch still requires approval.",
+        "The CI delivery job runs after application checks; downloadable artifacts are configured only for successful main push or main manual runs, with seven-day retention.",
+        "The local archive is a development preview, not an artifact from a committed release.",
+        "Only Linux amd64 was validated; no physical camera, public deployment, image registry or GitHub Release publication was used.",
+        "Final Phase III documentation, security and collaboration review remain for the next milestone."
       ]
     }
   ]

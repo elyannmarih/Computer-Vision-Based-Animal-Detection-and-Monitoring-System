@@ -23,6 +23,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        VCS_REF: ${DETECTRA_REVISION:-local}
     environment:
       DATABASE_URL: postgresql://detectra@db:5432/detectra_dev
       PGPASSWORD: ${DETECTRA_DB_PASSWORD:?Set DETECTRA_DB_PASSWORD in .env.compose}
@@ -51,6 +53,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        VCS_REF: ${DETECTRA_REVISION:-local}
     environment:
       API_BASE_URL: http://backend:8000
     ports:
