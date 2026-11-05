@@ -1,31 +1,31 @@
 # Detectra
 
-Detección de animales y personas en imágenes y cámaras, con revisión humana de resultados. Frontend Next.js; API FastAPI; almacenamiento local o S3 y base de datos PostgreSQL/Neon.
+Detectra is our university project for detecting animals and people in uploaded images and camera footage. Users can review the detections and mark whether they are correct. We use Next.js for the frontend, FastAPI for the backend, PostgreSQL/Neon for the database, and local storage or S3 for images.
 
-## Modelo conservado
+## Detection model
 
-El proyecto distribuye **un único modelo: `yolov8s-oiv7`**, con los pesos originales de Ultralytics Open Images. Detecta oso, ave, gato, ciervo, perro, zorro, lagartija, persona, mapache, serpiente y ardilla. En **Settings** se eligen las categorías; deseleccionarlas todas desactiva las detecciones. El mismo detector se usa en imágenes y cámaras, con entrada de 640 y confianza predeterminada de 0,25. Si faltan pesos/configuración, el backend informa un error; no genera detecciones ficticias.
+We use **one model, `yolov8s-oiv7`**, with the original Ultralytics Open Images weights. The supported categories are bear, bird, cat, deer, dog, fox, lizard, person, raccoon, snake, and squirrel. Users choose which categories to detect in **Settings**. Deselecting all categories turns detection off. Images and camera frames use the same detector, with an input size of 640 and a default confidence threshold of 0.25. Missing weights or configuration cause an error instead of fake detections.
 
-Se conserva por ser la opción multicategoría respaldada por la evaluación disponible. El híbrido experimental recuperó algunos objetos, pero añadió conflictos entre clases, errores de fusión y un coste de CPU considerable. **No hay una evaluación final independiente que justifique sustituir el original.**
+We kept this model after comparing it with an experimental hybrid that also processed smaller image sections. The hybrid found some additional objects, but it also confused classes, merged some boxes incorrectly, and took longer to run on the CPU. **We still need a separate, unused test set before deciding whether the hybrid is a better replacement.**
 
-La validación histórica de 214 imágenes dio 22 aciertos, 39 omisiones y recall de lagartijas de 36,1 %. La precisión del 100 % es **condicional a las clases anotadas**, no una precisión global: existen predicciones excluidas en imágenes con etiquetas parciales. Ambos métodos omitieron las dos lagartijas más pequeñas. Ninguno produjo alarmas en los 15 negativos verificados del manifiesto; la muestra es pequeña y ya fue examinada.
+On the existing validation set of 214 images, the original model detected 22 labeled lizards and missed 39, giving a lizard recall of 36.1%. Its reported precision of 100% applies **only to the classes included in the annotations**. Some predictions were excluded because the images were only partly labeled, so this is not an overall precision score. Both methods missed the two smallest lizards. Neither produced an alarm on the 15 images marked as verified negatives, but this is a small sample that we had already examined.
 
-Los resultados, límites, hashes y comparación con el híbrido están en [`backend/models/yolov8s-oiv7/evaluation.json`](backend/models/yolov8s-oiv7/evaluation.json). Los datos, modelos descartados e informes de investigación se archivaron fuera del repositorio. No son necesarios para ejecutar la aplicación ni se publican con ella.
+The results, limitations, file hashes, and hybrid comparison are saved in [`backend/models/yolov8s-oiv7/evaluation.json`](backend/models/yolov8s-oiv7/evaluation.json). We archived the datasets, unused models, and experiment reports outside this repository. They are not needed to run the application.
 
-## Ejecutar en Windows
+## Running on Windows
 
-Requisitos: Python 3.13, Node.js y acceso a la base de datos PostgreSQL existente de Detectra. El esquema debe contener las tablas `cameras`, `models`, `trusted_persons`, `human_verifications`, `images` y `detections`; arrancar la API no crea ni reinicia la base de datos.
+You need Python 3.13, Node.js, and access to an existing Detectra PostgreSQL database. The database must contain the `cameras`, `models`, `trusted_persons`, `human_verifications`, `images`, and `detections` tables. Starting the API does not create or reset the database.
 
-1. Copiar `backend/.env.example` a `backend/.env` y completar `DATABASE_URL`. Conservar el archivo privado fuera de Git.
-2. Desde la raíz, ejecutar:
+1. Copy `backend/.env.example` to `backend/.env` and fill in `DATABASE_URL`. Keep this private file out of Git.
+2. From the project root, run:
 
    ```powershell
    .\backend\run.ps1
    ```
 
-   El lanzador crea un entorno en `%LOCALAPPDATA%\Detectra\venv`, instala las dependencias y arranca FastAPI en `http://127.0.0.1:8000`. La ruta corta evita problemas de Windows con PyTorch. `-SetupOnly` instala sin iniciar la API. Documentación de endpoints: `http://127.0.0.1:8000/docs`.
+   This script creates a Python environment at `%LOCALAPPDATA%\Detectra\venv`, installs the dependencies, and starts FastAPI at `http://127.0.0.1:8000`. The short environment path avoids Windows path problems with PyTorch. Use `-SetupOnly` to install without starting the API. The API documentation is available at `http://127.0.0.1:8000/docs`.
 
-3. En otra terminal:
+3. In another terminal, run:
 
    ```powershell
    cd frontend
@@ -34,21 +34,21 @@ Requisitos: Python 3.13, Node.js y acceso a la base de datos PostgreSQL existent
    npm run dev
    ```
 
-   Abrir `http://localhost:3000`. Rutas: inicio, `/upload`, `/camera`, `/results`, `/settings` y `/how-to-use`. El navegador llama al proxy `/api/detectra/*`; `API_BASE_URL` es una variable exclusiva del servidor y debe apuntar al backend.
+   Open `http://localhost:3000`. The pages are `/`, `/upload`, `/camera`, `/results`, `/settings`, and `/how-to-use`. Browser requests go through `/api/detectra/*`. The server-only `API_BASE_URL` variable must point to the backend.
 
-En otros sistemas se puede crear un entorno Python normal, instalar `backend/requirements.txt` y ejecutar `python -m uvicorn app.main:app` desde `backend`.
+On other operating systems, create a Python virtual environment, install `backend/requirements.txt`, and run `python -m uvicorn app.main:app` from the `backend` directory.
 
-## Configuración y funcionamiento
+## Configuration
 
-- **Cámara:** `CAMERA_RTSP_URL` en `backend/.env`; las credenciales no se devuelven al navegador. **Scan Now** guarda el fotograma actual y sus detecciones. `CAMERA_SAVE_INTERVAL=0` desactiva los guardados automáticos; el valor predeterminado permite guardarlos cada 30 segundos cuando se supera `CAMERA_SAVE_CONFIDENCE`.
-- **Imágenes:** sin `S3_BUCKET` se guardan en `backend/uploads/`, excluido de Git. Para S3/R2, completar las variables del ejemplo y una URL pública de lectura. `PUBLIC_API_URL` debe coincidir con el origen del backend configurado en el frontend.
-- **Revisión humana:** los resultados guardados aceptan revisión por detección o por imagen usando un revisor existente en `trusted_persons`. El modo de demostración del frontend está separado de los resultados reales.
-- **Modelo:** `backend/models/active.txt` fija el predeterminado distribuido. `LIZARD_MODEL` o una selección local válida pueden tener prioridad; no apuntar a modelos archivados. La API de selección se mantiene por compatibilidad. Las preferencias locales de categorías no se suben a Git.
-- **Historial:** los registros existentes pueden mencionar versiones antiguas. Consultarlos o revisar sus detecciones no requiere conservar sus pesos en el servidor.
+- **Camera:** Set `CAMERA_RTSP_URL` in `backend/.env`. Camera credentials are not returned to the browser. **Scan Now** saves the current frame and its detections. Set `CAMERA_SAVE_INTERVAL=0` to disable automatic saves. By default, frames can be saved every 30 seconds when a detection exceeds `CAMERA_SAVE_CONFIDENCE`.
+- **Image storage:** If `S3_BUCKET` is empty, images are saved in `backend/uploads/`, which Git ignores. For S3/R2, fill in the example environment variables and provide a public image URL. `PUBLIC_API_URL` must match the backend origin configured in the frontend.
+- **Human review:** Saved results can be reviewed per detection or per image using a reviewer listed in `trusted_persons`. The frontend's demo mode is separate from real detection results.
+- **Model settings:** `backend/models/active.txt` sets the default model. `LIZARD_MODEL` or a valid local selection can override it; these should not point to archived models. The model-selection API remains available for compatibility. Local category preferences are not committed to Git.
+- **Previous results:** Saved records may refer to older model versions. Viewing or reviewing these records does not require keeping the old model weights on the server.
 
-## Pruebas
+## Tests
 
-Desde la raíz, después de instalar las dependencias:
+After installing the dependencies, run these commands from the project root:
 
 ```powershell
 $python = "$env:LOCALAPPDATA/Detectra/venv/Scripts/python.exe"
@@ -59,7 +59,7 @@ npm --prefix frontend run lint
 npm --prefix frontend run build
 ```
 
-Para las pruebas de navegador:
+For browser tests:
 
 ```powershell
 cd frontend
@@ -67,29 +67,29 @@ npx playwright install chromium webkit
 npm run test:e2e
 ```
 
-Playwright utiliza servidores de prueba locales en los puertos 8101 y 3100 y respuestas simuladas; las pruebas no escriben en la base de datos de producción. Comprueban cargas, contratos, resultados, revisión, selección de categorías y Scan Now en Chromium de escritorio/móvil y WebKit. No sustituyen una prueba de campo de la cámara.
+Playwright uses local test servers on ports 8101 and 3100 with simulated API responses. These tests do not write to the production database. They check uploads, API responses, results, human review, category selection, and Scan Now in desktop/mobile Chromium and WebKit. We still need field testing to check how the system behaves with a physical camera.
 
-## Evaluar el detector
+## Evaluating the detector
 
-`backend/evaluate.py` ejecuta el detector real de la aplicación, valida sus respuestas y calcula TP/FP/FN, precisión, recall y F1 por clase. No inicia cámaras ni escribe en la base de datos. Usa todas las categorías y confianza 0,25 sin cambiar las preferencias guardadas.
+`backend/evaluate.py` runs the application's detector, checks its output format, and calculates true positives, false positives, false negatives, precision, recall, and F1 for each class. It does not start cameras or write to the database. It uses all supported categories at confidence 0.25 without changing saved preferences.
 
-El manifiesto JSON contiene una lista como esta; las cajas usan `[x, y, ancho, alto]` normalizados y deben incluir todos los objetos de las categorías soportadas:
+Provide a JSON manifest like the example below. Boxes use normalized `[x, y, width, height]` coordinates, and the annotations must include every object belonging to a supported category:
 
 ```json
 [{"id":"example-1","path":"images/example.jpg","split":"test",
   "truth":[["dog",[0.1,0.2,0.3,0.4]]],"complete_annotations":true}]
 ```
 
-Para negativos, usar `truth: []`, `complete_annotations: true` y `verified_empty: true`. Las rutas relativas se resuelven desde el manifiesto. Las imágenes y las cajas deben tener la orientación normalizada. Evaluar con un nombre de salida nuevo:
+For negative images, use `truth: []`, `complete_annotations: true`, and `verified_empty: true`. Relative image paths are resolved from the manifest's directory. Images and boxes must have matching, normalized orientation. Choose a new output filename for each evaluation:
 
 ```powershell
 & "$env:LOCALAPPDATA/Detectra/venv/Scripts/python.exe" backend/evaluate.py --manifest C:/data/manifest.json --split test --out C:/data/results.json
 ```
 
-Para reproducir únicamente la validación histórica archivada se puede usar `--allow-partial-annotations`, junto con `--original-root` y `--data-root` para reubicar las rutas. Esa opción registra las predicciones excluidas y marca explícitamente los resultados como condicionales, sin independencia. No ajustar el modelo ni los umbrales con un conjunto reservado para evaluación final.
+To reproduce the archived validation, use `--allow-partial-annotations`, with `--original-root` and `--data-root` if the image paths have moved. This option counts excluded predictions and labels the results as conditional, not independent. Keep the final test set separate from any data used to adjust the model or its thresholds.
 
-## Contenido para GitHub
+## Repository contents
 
-Código de la aplicación, pruebas, ejemplos de configuración, un modelo con sus metadatos/resultados, este README y las instrucciones de desarrollo de Next.js. Se excluyen secretos, preferencias locales, imágenes de usuarios, entornos, datos de entrenamiento y experimentos.
+The repository contains the application code, tests, example configuration, one model with its metadata and evaluation results, this README, and the Next.js development instructions. Private credentials, local preferences, uploaded images, Python environments, training data, and experiment files are excluded.
 
-Referencia visual del proyecto: [diseño en Figma](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=8-2).
+Our interface design reference is available in [Figma](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=8-2).
