@@ -71,6 +71,12 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Configure Ubuntu package mirror
+        run: |
+          # Slow Azure downloads can exhaust the job timeout without triggering APT failover.
+          # Keep the official Ubuntu archive and security mirrors supplied by the runner.
+          sudo sed -i '/azure\.archive\.ubuntu\.com/d' /etc/apt/apt-mirrors.txt
+
       - name: Install OpenCV system dependencies
         run: |
           sudo apt-get update
@@ -83,10 +89,14 @@ jobs:
           python -m pip install -r backend/requirements-dev.txt
           python -m pip check
 
-      - name: Install frontend and browser dependencies
+      - name: Install frontend dependencies
+        timeout-minutes: 5
+        run: npm --prefix frontend ci
+
+      - name: Install browser dependencies
+        timeout-minutes: 10
+        working-directory: frontend
         run: |
-          npm --prefix frontend ci
-          cd frontend
           npx playwright install --with-deps chromium webkit
 
       - name: Record installed versions
