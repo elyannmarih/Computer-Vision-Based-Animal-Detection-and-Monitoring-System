@@ -1492,6 +1492,47 @@
         "existing_tracked_examples_preserved": 3
       },
       "record_scope": "Earlier milestones are dated snapshots. Their raw results are preserved; this entry updates the current status. Hosted tests cover the indicated commit, not these later documentation and ignore-rule edits."
+    },
+    {
+      "milestone": "Pull request verification before merge",
+      "reviewed_on": "2026-11-17",
+      "verified_commit": "f291eaf12b3442a96d1e878a0c677ff2c48bf611",
+      "verification_method": "We read the GitHub Actions logs and pull request metadata on 2026-11-17. We did not rerun the suites locally for this entry.",
+      "source_scope": "Commits after 8d24056 changed .gitignore, README.md, and the Phase III documents only. Application and test sources were unchanged.",
+      "ci": {
+        "run_id": 42127623491,
+        "url": "https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/actions/runs/42127623491",
+        "event": "pull_request",
+        "conclusion": "success",
+        "application_checks": "success",
+        "docker_delivery": "success",
+        "log_lines": {
+          "python_unit": "Ran 47 tests in 0.482s; OK",
+          "postgresql_and_yolo_integration": "Ran 22 tests in 6.198s; OK",
+          "browser_regression": "109 passed (1.7m)",
+          "real_backend_browser_workflows": "5 passed (8.8s)",
+          "docker_source_and_packaged": "8 Docker checks passed. (printed twice)",
+          "delivery_load": "Verified 7 checksums and loaded matching Docker images."
+        },
+        "diagnostic_artifacts": [
+          "test-results-42127623491-1",
+          "delivery-checks-42127623491-1"
+        ],
+        "downloadable_delivery_archive": "Not uploaded. The workflow uploads detectra-<commit>-linux-amd64-<attempt> only from main.",
+        "main_workflow_runs": 0
+      },
+      "review": {
+        "pull_request": 3,
+        "reviewer": "SleepingBear23",
+        "state": "APPROVED",
+        "submitted_at": "2026-11-16T20:47:07Z",
+        "commit": "f291eaf12b3442a96d1e878a0c677ff2c48bf611",
+        "inline_review_comments": 0,
+        "mergeable": "MERGEABLE",
+        "merge_state": "CLEAN",
+        "merged": false,
+        "base": "2720cbdab74c6cec136318d17bfd311be2dda582"
+      }
     }
   ],
   "current_review": {
@@ -1499,7 +1540,10 @@
     "pull_request": 3,
     "url": "https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/3",
     "base": "main",
+    "verified_commit": "f291eaf12b3442a96d1e878a0c677ff2c48bf611",
     "reviewer": "SleepingBear23",
-    "status": "open; checks and review required before merge"
+    "review_state": "APPROVED",
+    "ci_run": 42127623491,
+    "status": "Evan approved f291eaf and our pull request is mergeable. We updated this record after that approval. We have not merged, and main has no workflow run or downloadable delivery archive yet."
   }
 }

@@ -2,7 +2,7 @@
 
 CIS 553: Software Engineering, Fall 2026  
 Elyann Soto and Evan Wilson  
-Status reviewed November 5, 2026; branch `feat/phase-3-implementation`
+Status reviewed November 17, 2026. Evan approved revision `f291eaf` on our PR #3. We have not merged it.
 
 ## 1. Project Overview
 
@@ -27,7 +27,7 @@ The comparison uses the [Phase II report preserved at commit cf37ec6](https://gi
 | Controlled prototype without individual accounts | Still the supported scope; authentication remains required before public application hosting |
 | Human feedback for later evaluation | Feedback persists and can be corrected; it does not trigger retraining |
 | Camera scans and optional continuous monitoring | One configured stream supports live inference, Scan Now, and optional timed saves; physical validation is pending |
-| CI/CD and deployment scheduled later in November | Application checks and Docker delivery passed in GitHub Actions; merge, final artifact publication, and repository visibility remain pending |
+| CI/CD and deployment scheduled later in November | Application checks and Docker delivery passed on the pull request. Merge, the downloadable `main` artifact, and repository visibility remain pending |
 
 Email verification links, multiple simultaneous live streams, analytics, automatic retraining, and RT-DETR comparison are not claimed as completed. The original interface layout was retained. The final audit replaced a demo photograph of unconfirmed origin with synthetic shapes without changing the UI structure.
 
@@ -49,7 +49,7 @@ Compose runs PostgreSQL, FastAPI, and Next.js with separate persistent volumes f
 
 ## 5. Software Testing
 
-The [test record](phase-3-test-results.json) contains commands, UTC timestamps, individual test names, counts, and log hashes. All results below were executed on November 5, 2026. They are recorded runs from the indicated milestone, not an assertion that every suite was rerun after each documentation edit.
+The [test record](phase-3-test-results.json) contains commands, UTC timestamps, individual test names, counts, and log hashes. The suite totals below come from our [GitHub Actions run 42127623491](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/actions/runs/42127623491), which ran on November 5, 2026, for commit `f291eaf`. We read that job log on November 17, 2026. It reported `Ran 47 tests in 0.482s` followed by `OK`, `Ran 22 tests in 6.198s` followed by `OK`, `109 passed (1.7m)`, `5 passed (8.8s)`, `8 Docker checks passed.` twice, and `Verified 7 checksums and loaded matching Docker images.` Our earlier local runs remain in the test record. We did not change application or test files between `8d24056` and `f291eaf`.
 
 | Executed check | Result | Scope |
 | --- | --- | --- |
@@ -58,9 +58,31 @@ The [test record](phase-3-test-results.json) contains commands, UTC timestamps, 
 | Browser regression suite | 109 passed, 0 failed, 0 skipped | API contracts plus desktop Chromium, mobile Chromium, and WebKit; API responses are simulated |
 | Real system browser suite | 5 passed, 0 failed, 0 skipped | Real Next.js, FastAPI, PostgreSQL, YOLO, and generated-video workflows |
 | Docker source and packaged-delivery checks | 8 passed in each run | Health, upload, inference, feedback, failure recovery, and persistence after container replacement |
-| Delivery verification | 7 file checksums verified; three image IDs restored | Export/load round trip and rejection of altered contents or untested images |
+| Delivery verification | 7 checksums verified and matching images loaded | Export/load round trip. Our local guard checks also reject altered contents and untested image IDs. We did not repeat those guards as separate steps in run 42127623491 |
 
 The application suites ran locally on Windows and in the isolated Linux CI rehearsal recorded in milestone 3. Docker validation used Linux amd64 containers through Docker Desktop. The final audit reran the 109 browser checks after replacing the demo and upload fixtures, plus 47 unit tests, mypy, and eight Docker checks against the rebuilt images. All passed. Checks for shared/external test volumes reject the configuration before creating or deleting resources.
+
+### Test case summary
+
+We summarized the major Phase II workflows that already have an automated test and that ran in 42127623491. Browser rows that use a simulated API are marked. We left out physical RTSP capture, account management, live S3 storage, and automatic retraining because we have not run those checks.
+
+| Test Case ID | Feature | Test Scenario | Expected Result | Actual Result | Test Type | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| TC-01 | Image analysis | Upload a valid image and run `yolov8s-oiv7` | The original image, model version, and detections are stored | Passed in run 42127623491: `test_real_yolo_upload_persists_boxes_model_and_original_image` and the system test "real upload, bounding boxes and feedback survive a browser reload" | Integration, system | Passed |
+| TC-02 | Empty result | Upload a blank image | No boxes are invented, and the image can still be reviewed | Passed in run 42127623491: `test_real_yolo_blank_image_has_no_boxes_and_can_be_reviewed` and the system test "real blank upload can be reviewed without inventing detections" | Integration, system | Passed |
+| TC-03 | Upload validation | Submit an invalid image | No detection row or stored file is created | Passed in run 42127623491: `test_invalid_uploads_do_not_create_rows_or_files` | Integration | Passed |
+| TC-04 | Human review | Save and later revise Correct/Incorrect feedback | The revised verdict is stored and the aggregate counts change | Passed in run 42127623491: `test_feedback_revisions_persist_and_update_aggregate_counts` | Integration | Passed |
+| TC-05 | Human review | Review an image that has no detection | The image is verified without creating a bounding box | Passed in run 42127623491: `test_no_detection_feedback_verifies_image_without_inventing_a_box_count` and the browser tests for Correct and Incorrect no-detection feedback | Unit, browser | Passed |
+| TC-06 | Results display | Reveal or hide individual boxes and read their confidence | Each box can be shown or hidden, and its own review stays attached to that box | Passed in run 42127623491: "independent reveal, hide, verification and confidence" in desktop Chromium, mobile Chromium, and WebKit | Browser, simulated API | Passed |
+| TC-07 | Species selection | Change the selected categories and reload | The selection persists and the weights remain `yolov8s-oiv7` | Passed in run 42127623491: the species-selection unit tests and the system test "species preferences persist without changing the model" | Unit, system | Passed |
+| TC-08 | Species selection | Clear every category | Detection stops and the empty selection is kept | Passed in run 42127623491: `test_empty_selection_is_preserved_and_does_not_predict` | Unit | Passed |
+| TC-09 | Camera status | Request status for a stream URL that contains credentials | The response omits the username, password, and stream URL | Passed in run 42127623491: `test_credentials_are_removed_and_never_appear_in_status` and the browser contract "live cameras expose status but never stream URLs or credentials" | Unit, browser | Passed |
+| TC-10 | Camera scan | Use Scan Now on a generated local video | The frame is analyzed with the real model and its capture time is kept | Passed in run 42127623491: `test_camera_fixture_scan_uses_real_model_and_preserves_capture_time` and the system test "local video goes through the live camera and Scan Now workflow" | Integration, system | Passed |
+| TC-11 | Database setup | Initialize and seed an empty local database, then repeat both commands | The schema and fictional samples are created once and existing reviews are not overwritten | Passed in run 42127623491: `test_empty_database_initializes_and_repeat_is_a_no_op` and `test_seed_is_repeatable_and_does_not_overwrite_reviewed_records` | Integration | Passed |
+| TC-12 | Database safety | Point setup at a remote database or omit the explicit development URL | Setup is rejected and does not use the application database URL as a fallback | Passed in run 42127623491: `test_remote_or_implicit_hosts_are_rejected` and `test_application_database_url_is_never_a_fallback` | Unit | Passed |
+| TC-13 | Navigation | Open the dashboard, the guide, and the main routes | The pages render and the guide links resolve | Passed in run 42127623491: "dashboard cards and sidebar navigation" and "guide includes six steps and working links" | Browser, simulated API | Passed |
+| TC-14 | Local delivery | Start the built Compose stack, analyze an image, save feedback, restart the backend, and replace the containers | The stack becomes healthy, inference and feedback work, and data survives container replacement | Passed twice in run 42127623491. The log printed `8 Docker checks passed.` for the source images and again for the packaged Compose file | Docker | Passed |
+| TC-15 | Delivery integrity | Verify the packaged archive and load its images | The listed checksums match and the restored image IDs match the manifest | Passed in run 42127623491. The log printed `Verified 7 checksums and loaded matching Docker images.` | Docker | Passed |
 
 Integration tests create random local test databases, temporary uploads, and isolated preferences. They disable private environment loading, S3, and physical camera access. The NASA astronaut fixture has recorded public-domain provenance in `backend/tests/fixtures/provenance.json`. Frontend demo/test images are original geometric drawings, and database sample images are generated by the seed script. These fixtures validate application behavior, not accuracy on wild animals.
 
@@ -78,7 +100,7 @@ The final security audit used pip-audit 2.10.1 against installed package invento
 
 The delivery job depends on the application job. It builds the application images, tests them, exports their exact IDs, verifies and reloads the archive, then tests the packaged Compose configuration with builds and pulls disabled. Failed commands fail the job. Actions are pinned to commit SHAs and the workflow token has read-only repository permissions. Diagnostic logs are retained for seven days.
 
-[GitHub Actions run 42122426016](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/actions/runs/42122426016), for PR head `8d24056`, passed on November 5, 2026. It passed 47 unit tests, 22 integration tests, 109 browser regression tests, 5 real-backend/YOLO browser workflows, static analysis, the production build, and the Docker delivery checks. The first hosted run timed out during slow Ubuntu package downloads. Commit `8d24056` switched away from the Azure package mirror and separated frontend and browser installation into bounded steps. The successful PR run uploaded diagnostic logs; the downloadable delivery artifact is reserved for a successful run on `main`.
+Our [GitHub Actions run 42127623491](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/actions/runs/42127623491) passed on November 5, 2026, for PR head `f291eaf`. When we reviewed Actions on November 17, 2026, it was our newest run. Application checks and Docker delivery both succeeded. The log counts are 47 unit tests, 22 integration tests, 109 browser regression tests, and 5 real-backend/YOLO browser workflows, plus static analysis, the production build, and the Docker checks described above. An earlier successful run, [42122426016](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/actions/runs/42122426016), covered `8d24056`. The first hosted run, 42109868881, was cancelled after the 30-minute job limit during slow Ubuntu package downloads. Commit `8d24056` switched away from the Azure package mirror and separated frontend and browser installation into bounded steps. Run 42127623491 uploaded diagnostic logs only. No workflow has run on `main`, so the downloadable delivery archive has not been published.
 
 ## 8. Deployment and Release Artifacts
 
@@ -86,7 +108,9 @@ The supported demonstration is a local Docker Compose installation. The [README]
 
 The delivery archive contains backend, frontend, and PostgreSQL images, a Compose file without build instructions, schema SQL, a safe environment example, startup instructions, a manifest, smoke-test evidence, and checksums. It excludes live volumes and private configuration. A successful `main` push or manual run is configured to retain a downloadable artifact for seven days. No registry publication, GitHub Release, or public deployment is configured.
 
-A local development preview was exported and loaded in milestone 5. It predates the final fixture and dependency audit changes, so it is superseded and must not be used as the final submission artifact. Generate the final bundle from the approved committed revision. Keep an existing installation's configuration and project name, back up its volumes, and review future schema changes before upgrading; the schema script is an initializer, not a migration framework.
+Run 42127623491 built the frontend and backend images, pulled PostgreSQL 16, tested that source stack, packaged the tested image IDs, verified seven checksums, loaded the archive, and passed the same eight checks against the packaged Compose file. The uploaded Actions files from that run are the test-results and delivery-checks logs, not the image archive. The workflow uploads `detectra-<commit>-linux-amd64-<attempt>` only after a successful push or manual run on `main`. That upload has not happened.
+
+A local development preview was exported and loaded in milestone 5. It predates the final fixture and dependency audit changes, so it is superseded and must not be used as the final submission artifact. Generate the final bundle from the merged revision. Keep an existing installation's configuration and project name, back up its volumes, and review future schema changes before upgrading; the schema script is an initializer, not a migration framework.
 
 ## 9. Known Limitations
 
@@ -107,12 +131,12 @@ The Phase II Gantt records planned responsibilities, not proof that work was com
 | Frontend and user workflow | Elyann's `1c4055e` adds the Next.js interface and initial tests; `53ff1e8` connects it to FastAPI and feedback. Evan's `e30f312` also changes upload, results, and live-camera integration. The Gantt assigns interface/results/review work to Elyann and image input to Evan. |
 | Backend, database, and inference | Evan's commits under `SleepingBear23` include the initial FastAPI implementation and seed (`2700bb0`), YOLO/RTSP backend (`17d6c2c`), and earlier model selection work (`5d1f74d`). These support the backend and database responsibilities in the Gantt. |
 | Integration and refinement | Both authors appear in the integrated history. Elyann's later commits include detection/review fixes (`8b50351`), camera-state correction (`1ab98c1`), species selection (`95dd47d`), and consolidation of the retained model (`e1db3ab`). The Gantt lists image integration as shared work. |
-| Phase III validation and delivery | The new database, testing, CI, Docker, and delivery commits are recorded under Elyann's account: `3365a97`, `c4080c5`, `a416ffa`, `25368a5`, and `3bebf2b`. Evan's review is pending. The original Gantt assigned testing/mypy mainly to Evan and CI/Docker/deployment to both; this difference needs team confirmation before the final contribution statement is submitted. |
+| Phase III validation and delivery | Our database, testing, CI, Docker, and delivery commits are recorded under Elyann's account: `3365a97`, `c4080c5`, `a416ffa`, `25368a5`, and `3bebf2b`. Evan approved our pull request on November 16, 2026, at commit `f291eaf`, without inline comments. We updated this report after that approval. The Phase II Gantt assigned testing and mypy mainly to Evan and CI, Docker, and deployment to both of us. We are not treating that plan as completed work, and the approval does not add Phase III commits under Evan's account. |
 
 The repository remains private. [PR #1](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/1), authored by Evan under `SleepingBear23`, is closed; his backend work is included in the existing development history. [PR #3](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/3) contains the Phase III implementation. Existing authorship and commits are preserved.
 
-PR #3 targets `main` from the pushed `feat/phase-3-implementation` branch. Hosted checks have passed, and Evan is the requested reviewer; no review has been submitted as of this update. The review should cover database compatibility, inference and camera behavior, test isolation, delivery, and the contribution notes. Documentation follow-ups belong in this same PR. Merge remains pending review and approval; the planned Gantt is not used to rewrite recorded authorship.
+Our PR #3 targets `main` from `feat/phase-3-implementation`. On November 17, 2026, we confirmed that it is mergeable, with no conflicts and no review comments. Evan's approval is on `f291eaf`, and our run 42127623491 passed for that commit. We have not merged it. `main` is still `2720cbd`, and it has no Actions runs. We are not using the planned Gantt to rewrite recorded authorship.
 
 ## 11. Conclusion
 
-Detectra has a working local application, reproducible database examples, recorded automated tests, and a container delivery process validated locally and in GitHub Actions. The retained model and personal preferences are unchanged. The branch is pushed and PR #3 is open. Evan's review, merge approval, final delivery artifact publication, physical-camera validation, and the repository visibility decision remain pending. We are keeping the existing development history.
+Detectra has a working local application, reproducible database examples, recorded automated tests, and a container delivery process that passed on our open pull request. We kept the original model and the recorded contributions. Evan approved our pull request on November 16, 2026. We still need to merge, get a successful Actions run on `main`, publish the downloadable delivery archive, validate a physical camera, and decide whether to make the repository public. We are keeping the existing development history.

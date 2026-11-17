@@ -1,6 +1,6 @@
 # Detectra
 
-Detectra is our university project for detecting animals and people in uploaded images and camera footage. Users can review the detections and mark whether they are correct. We use Next.js for the frontend, FastAPI for the backend, PostgreSQL/Neon for the database, and local storage or S3 for images.
+Detectra is our university project for detecting animals and people in uploaded images and camera footage. Users can review the detections and mark whether they are correct. We use Next.js for the frontend, FastAPI for the backend, PostgreSQL for the database, and local storage or optional S3-compatible storage for images. A local PostgreSQL 16 database is enough to reproduce the application. The shared Neon database is not required.
 
 **Course:** CIS 553: Software Engineering, Fall 2026. **Team:** Elyann Soto and Evan Wilson.
 
@@ -228,7 +228,7 @@ The job runs Python unit tests, mypy, PostgreSQL/inference integration tests, ES
 
 Test logs, installed dependency versions, the browser report, and retained failure traces are uploaded for seven days, including when a test fails. Dependency installation requires internet access. The actions are pinned to commit SHAs, the workflow token has read-only repository permissions, and checkout does not retain Git credentials. The Docker delivery job starts only after these application checks pass.
 
-The GitHub-hosted [CI run for commit 8d24056](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/actions/runs/42122426016) passed on November 5, 2026, including Application checks and Docker delivery. The earlier run reached its 30-minute limit while downloading Ubuntu browser dependencies; the workflow now uses the official Ubuntu mirrors instead of the slow Azure mirror. Local and hosted validation records are in `docs/phase-3-test-results.json`.
+Our GitHub-hosted [CI run for commit f291eaf](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/actions/runs/42127623491) passed on November 5, 2026. When we checked Actions on November 17, it was our newest run. Application checks and Docker delivery both succeeded: 47 Python unit tests, 22 integration tests, 109 browser regression tests, 5 system tests, and 8 Docker checks on both the source stack and the packaged Compose file. The delivery step verified 7 checksums and loaded the matching images. An earlier successful run covered commit 8d24056. The first hosted run reached its 30-minute limit while downloading Ubuntu browser dependencies; the workflow now uses the official Ubuntu mirrors instead of the slow Azure mirror. Local and hosted validation records are in `docs/phase-3-test-results.json`. No workflow has run on `main`.
 
 ## Delivery
 
@@ -246,7 +246,7 @@ docker compose --env-file .env.compose up -d --wait --no-build --pull never
 docker compose --env-file .env.compose run --rm seed
 ```
 
-Open `http://localhost:3000`. This delivery currently targets Linux amd64 containers and local access. No GHCR publication, GitHub Release publication, public deployment or physical-camera capture is configured. The PR workflow has successfully built, tested, packaged, reloaded, and tested the delivery in GitHub Actions. Diagnostic artifacts were uploaded; the downloadable delivery artifact is uploaded only from `main`, so that final upload remains pending the merge and a successful run on `main`.
+Open `http://localhost:3000`. This delivery currently targets Linux amd64 containers and local access. No GHCR publication, GitHub Release publication, public deployment or physical-camera capture is configured. In run 42127623491 we built, tested, packaged, reloaded, and retested the delivery. That run uploaded diagnostic logs only. The downloadable `detectra-<commit>-linux-amd64-<attempt>` archive is uploaded only from `main`, so we still need to merge and get a successful run on `main` before that archive is available.
 
 To reproduce packaging locally from a clean, committed checkout:
 
@@ -297,6 +297,6 @@ The frontend demo image and JPG/PNG/WebP fixtures are original synthetic shapes 
 
 The November 5, 2026 audit found no exposed live credentials in the scanned Git history. The historical Phase II PDF contains student contact emails, and Git retains normal author information; these are not credentials and are not scheduled for removal. Environment files and their local or production variants are ignored, while sanitized configuration examples remain tracked. The frontend dependency audit reports eight moderate findings in development tooling, all associated with the [minimatch advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249), and none in runtime dependencies. No forced dependency downgrade was applied. These results are a dated audit, not a guarantee that the project is free of vulnerabilities.
 
-The branch is pushed and hosted CI has passed. [PR #3](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/3) remains open for Evan's review before merging. Before submission, we still need to review the contribution table, produce the final delivery artifact, and decide on repository visibility. The repository remains private; no remote history rewrite or visibility change has been performed. History rewriting is not a requirement for running or reviewing the project.
+We pushed the branch. Our hosted CI passed for `f291eaf`, and Evan approved [PR #3](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/3) on November 16, 2026. The pull request is mergeable and has no review comments. We have not merged it. Before submission, we still need to merge, wait for a successful Actions run on `main`, download the delivery artifact from that run, and decide on repository visibility. The repository remains private. We have not rewritten remote history or changed its visibility. History rewriting is not required to run or review the project.
 
 Our interface design reference is available in [Figma](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=8-2).
