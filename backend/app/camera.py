@@ -50,7 +50,10 @@ cameras: dict[UUID, "LiveCamera"] = {}
 def without_credentials(url: str) -> str:
     parts = urlsplit(url)
     host = parts.hostname or ""
-    return urlunsplit(parts._replace(netloc=host + (f":{parts.port}" if parts.port else "")))
+    if ":" in host:
+        host = f"[{host}]"
+    # Query strings and fragments can carry camera passwords or access tokens too.
+    return urlunsplit(parts._replace(netloc=host + (f":{parts.port}" if parts.port else ""), query="", fragment=""))
 
 
 class LiveCamera:
@@ -59,13 +62,18 @@ class LiveCamera:
         self._stop = threading.Event()
         self._new_frame = threading.Event()
         self._lock = threading.Lock()
-        self._frame = self._frame_at = None  # latest frame read, not yet analyzed
+        self._frame: cv2.typing.MatLike | None = None
+        self._frame_at: datetime | None = None  # latest frame read, not yet analyzed
         self.jpeg: bytes | None = None  # latest analyzed frame with boxes drawn
         self.detections: list[detector.Detection] = []
         self.model_version: str | None = None
-        self.connected, self.error = False, None
-        self.width = self.height = self.fps = None
-        self.last_frame_at = self.last_saved_at = None
+        self.connected = False
+        self.error: str | None = None
+        self.width: int | None = None
+        self.height: int | None = None
+        self.fps: float | None = None
+        self.last_frame_at: datetime | None = None
+        self.last_saved_at: datetime | None = None
         self._threads = [threading.Thread(target=f, daemon=True, name=f"{f.__name__}-{camera_id}")
                          for f in (self._read, self._analyze)]
 
@@ -82,31 +90,36 @@ class LiveCamera:
     def _read(self):
         """Keep only the newest frame, so analysis never falls behind the live stream."""
         while not self._stop.is_set():
-            cap = cv2.VideoCapture(self._url, cv2.CAP_FFMPEG, [
-                cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 10000, cv2.CAP_PROP_READ_TIMEOUT_MSEC, 10000,
-            ])
-            if not cap.isOpened():
-                self.connected, self.error = False, "Can't open the camera stream; retrying."
-                cap.release()
-                self._stop.wait(RECONNECT_DELAY)
-                continue
-            self.error = None
-            # A video file (handy for testing) is read as fast as possible, so play it at its own frame rate
-            is_file = "://" not in self._url
-            frame_time = 1 / (cap.get(cv2.CAP_PROP_FPS) or 10) if is_file else 0
-            while not self._stop.is_set():
-                if frame_time:
-                    self._stop.wait(frame_time)
-                ok, frame = cap.read()
-                if not ok:
-                    self.connected, self.error = False, "The camera stream stopped; reconnecting."
-                    break
-                with self._lock:
-                    self._frame, self._frame_at = frame, datetime.now(timezone.utc)
-                self.connected = True
-                self.height, self.width = frame.shape[:2]
-                self._new_frame.set()
-            cap.release()
+            cap = None
+            try:
+                cap = cv2.VideoCapture(self._url, cv2.CAP_FFMPEG, [
+                    cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 10000, cv2.CAP_PROP_READ_TIMEOUT_MSEC, 10000,
+                ])
+                if not cap.isOpened():
+                    self.connected, self.error = False, "Can't open the camera stream; retrying."
+                else:
+                    self.error = None
+                    # Play local video fixtures at their frame rate rather than reading at full speed.
+                    is_file = "://" not in self._url
+                    frame_time = 1 / (cap.get(cv2.CAP_PROP_FPS) or 10) if is_file else 0
+                    while not self._stop.is_set():
+                        if frame_time and self._stop.wait(frame_time):
+                            break
+                        ok, frame = cap.read()
+                        if not ok:
+                            self.connected, self.error = False, "The camera stream stopped; reconnecting."
+                            break
+                        with self._lock:
+                            self._frame, self._frame_at = frame, datetime.now(timezone.utc)
+                        self.connected = True
+                        self.height, self.width = frame.shape[:2]
+                        self._new_frame.set()
+            except (cv2.error, OSError):
+                # OpenCV errors may include the full URL; publish only a safe retry message.
+                self.connected, self.error = False, "The camera stream failed; reconnecting."
+            finally:
+                if cap is not None:
+                    cap.release()
             self._stop.wait(RECONNECT_DELAY if not self._stop.is_set() else 0)
 
     def latest(self):
@@ -115,12 +128,12 @@ class LiveCamera:
             return self._frame, self._frame_at
 
     def _analyze(self):
-        times = []
+        times: list[float] = []
         while not self._stop.is_set():
             self._new_frame.wait(timeout=1)
             self._new_frame.clear()
             frame, frame_at = self.latest()
-            if frame is None or frame_at == self.last_frame_at:
+            if frame is None or frame_at is None or frame_at == self.last_frame_at:
                 continue
             try:
                 model = detector.active()
@@ -195,6 +208,7 @@ def start():
             " RETURNING camera_id, location_name, enabled",
             [public, os.getenv("CAMERA_NAME") or "Camera"],
         ).fetchone()
+    assert row is not None  # The fallback INSERT returns the new camera.
     if not row["enabled"]:
         log.info("Camera %s (%s) is disabled; not streaming.", row["camera_id"], public)
         return
@@ -251,7 +265,7 @@ def scan(camera_id: UUID, request: Request, conn: Conn):
     """Analyze the camera's current frame and save it with its detections, like an upload."""
     camera = get(camera_id)
     frame, frame_at = camera.latest()
-    if frame is None:
+    if frame is None or frame_at is None:
         raise HTTPException(503, camera.error or "No frame from the camera yet")
     model = detector.active()
     return camera.save(conn, str(request.base_url), frame, frame_at, model, detector.detect_frame(frame, model))

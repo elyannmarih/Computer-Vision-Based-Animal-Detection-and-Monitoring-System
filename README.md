@@ -1,6 +1,41 @@
 # Detectra
 
-Detectra is our university project for detecting animals and people in uploaded images and camera footage. Users can review the detections and mark whether they are correct. We use Next.js for the frontend, FastAPI for the backend, PostgreSQL/Neon for the database, and local storage or S3 for images.
+Detectra is our university project for detecting animals and people in uploaded images and camera footage. Users can review the detections and mark whether they are correct. We use Next.js for the frontend, FastAPI for the backend, PostgreSQL for the database, and local storage or optional S3-compatible storage for images. A local PostgreSQL 16 database is enough to reproduce the application. The shared Neon database is not required.
+
+**Course:** CIS 553: Software Engineering, Fall 2026. **Team:** Elyann Soto and Evan Wilson.
+
+The [Phase III implementation and testing report](docs/phase-3-implementation-testing.md) explains the implemented scope, test results, contributions, and remaining submission steps. The [test record](docs/phase-3-test-results.json) contains commands, dates, test names, and result counts.
+
+## Features and technology
+
+- Upload JPG, PNG, or WebP images and receive real YOLO detections with bounding boxes and confidence scores.
+- Reveal or hide individual detections, review them as Correct/Incorrect, and retrieve saved feedback after a page reload. Empty results can also be reviewed.
+- View a configured camera and use Scan Now to save a frame with its detections. Live inference and optional interval-based saving use the same model as uploads.
+- Select supported species in Settings; use the dashboard and How to Use page to navigate the workflows.
+- Run a local demonstration with synthetic sample records, or analyze permitted images without a physical camera.
+
+The stack is Next.js 16 with TypeScript and React, Python 3.13 with FastAPI and Ultralytics YOLO, and PostgreSQL 16. Playwright, unittest, mypy, ESLint, GitHub Actions, and Docker support testing and delivery. Node.js 22 is used in CI and Docker.
+
+## Project structure
+
+| Path | Purpose |
+| --- | --- |
+| `frontend/src/` | Pages, review components, and the server-side FastAPI proxy |
+| `backend/app/` | API, inference, camera processing, storage, and feedback transactions |
+| `backend/models/yolov8s-oiv7/` | Retained weights, model configuration, and historical evaluation |
+| `backend/database/` | Reproducible SQL schema and fictional sample records |
+| `backend/tests/`, `frontend/tests/` | Unit, integration, browser, and container checks |
+| `.github/workflows/ci.yml`, `compose.yaml`, `scripts/delivery.py` | CI, local containers, and versioned delivery packaging |
+| `docs/` | Phase III report and recorded test evidence |
+
+## Get the source
+
+```powershell
+git clone https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System.git
+cd Computer-Vision-Based-Animal-Detection-and-Monitoring-System
+```
+
+The repository is currently private, so cloning requires an authorized GitHub account. Phase III changes are on `feat/phase-3-implementation`; switch to that branch to review the implementation. The Docker instructions below are an alternative to installing Python, Node.js, and PostgreSQL directly.
 
 ## Detection model
 
@@ -14,7 +49,7 @@ The results, limitations, file hashes, and hybrid comparison are saved in [`back
 
 ## Running on Windows
 
-You need Python 3.13, Node.js, and access to an existing Detectra PostgreSQL database. The database must contain the `cameras`, `models`, `trusted_persons`, `human_verifications`, `images`, and `detections` tables. Starting the API does not create or reset the database.
+You need Python 3.13, Node.js 22, and PostgreSQL 16. You can create a local database using the steps below; access to our shared Neon database is not required. Starting the API does not create or reset the database. Keep the environment's pip installer updated; the final audit upgraded the local installer to 26.3 without changing the model or application dependencies.
 
 1. Copy `backend/.env.example` to `backend/.env` and fill in `DATABASE_URL`. Keep this private file out of Git.
 2. From the project root, run:
@@ -38,12 +73,63 @@ You need Python 3.13, Node.js, and access to an existing Detectra PostgreSQL dat
 
 On other operating systems, create a Python virtual environment, install `backend/requirements.txt`, and run `python -m uvicorn app.main:app` from the `backend` directory.
 
+## Database setup and sample data
+
+The [SQL schema](backend/database/schema.sql) reproduces the six tables used by the current API, including their types, defaults, foreign keys, and checks. It adds indexes for image lists and verification lookups. We checked the structure against the existing database using read-only metadata queries; no private records were copied. `primary_account_id` remains a UUID field on `trusted_persons`, as in the existing schema. It does not imply that account management has been implemented.
+
+First, install the backend dependencies without starting the application:
+
+```powershell
+.\backend\run.ps1 -SetupOnly
+$python = "$env:LOCALAPPDATA/Detectra/venv/Scripts/python.exe"
+```
+
+Using a local PostgreSQL administrator connection, create a development role and an empty database. Choose your own local password when prompted:
+
+```powershell
+createuser --host=127.0.0.1 --username=postgres --pwprompt detectra_dev
+createdb --host=127.0.0.1 --username=postgres --owner=detectra_dev detectra_dev
+```
+
+Set `DETECTRA_DEV_DATABASE_URL` in your shell with that role's password, URL-encoded if it contains special characters. The following value is only an example:
+
+```powershell
+$env:DETECTRA_DEV_DATABASE_URL = 'postgresql://detectra_dev:replace-me@127.0.0.1:5432/detectra_dev'
+& $python backend/init_db.py
+& $python backend/seed.py
+```
+
+These scripts read only the explicitly exported development URL. They do not read `.env`, fall back to `DATABASE_URL`, or accept remote hosts. Database names must be `detectra_dev` or `detectra_test`, optionally followed by an underscore and a lowercase alphanumeric suffix. Setup requires an empty database; repeating it on a schema created by this script makes no changes. An unrelated existing schema is rejected. There is no reset or delete option.
+
+For a direct SQL installation on an empty local database, use `psql --dbname="$env:DETECTRA_DEV_DATABASE_URL" --set=ON_ERROR_STOP=1 --single-transaction --file=backend/database/schema.sql` instead of `init_db.py`. Unlike the Python helper, `psql` does not enforce the local-host check. Do not point this command at the shared database. The transaction prevents a failed installation from leaving only part of the schema. See the PostgreSQL [CREATE TABLE documentation](https://www.postgresql.org/docs/16/sql-createtable.html) and psycopg [transaction documentation](https://www.psycopg.org/psycopg3/docs/basic/transactions.html).
+
+The [sample records](backend/database/sample_data.json) include one disabled fictional camera, one fictional reviewer, three images, three detections, and examples of correct, incorrect, empty-image, and pending reviews. `seed.py` creates the PNG images locally using geometric shapes and visible **SYNTHETIC DEMO** labels. We do not use third-party photos or personal camera images. Boxes and confidence scores are manually authored examples, not YOLO predictions or evaluation results. The `stub-demo-v1` database record identifies these examples; it does not install a second detector or change the active YOLO model.
+
+Sample IDs are fixed. Running the seed again does not duplicate records, replace existing rows, or reset feedback. It also refuses to overwrite an image with different contents. Database inserts run in one transaction. If a later database operation fails, generated fixture files may remain and can be reused on retry. Use the same API origin when repeating the seed; existing URLs are not rewritten. `--uploads-dir` selects a different local fixture directory and `--api-base-url` sets the API origin used in sample image URLs. The default directory is `backend/uploads/` and the default origin is `http://127.0.0.1:8000`.
+
+To run against this local database without opening a personal camera or using a bucket, set these variables in the backend terminal before starting the API:
+
+```powershell
+$env:DATABASE_URL = $env:DETECTRA_DEV_DATABASE_URL
+$env:CAMERA_RTSP_URL = ''
+$env:S3_BUCKET = ''
+.\backend\run.ps1
+```
+
+Start the frontend as described above, with `API_BASE_URL=http://127.0.0.1:8000`. Check `http://127.0.0.1:8000/health`, then open these pages:
+
+- `/results?image=50000000-0000-0000-0000-000000000001`: two sample boxes with saved Correct/Incorrect feedback.
+- `/results?image=50000000-0000-0000-0000-000000000002`: a reviewed empty-image example.
+- `/results?image=50000000-0000-0000-0000-000000000003`: an unreviewed example for trying feedback and refreshing the page.
+
+Use **Demo Reviewer** when trying feedback. The sample camera is disabled and has no real stream. For actual predictions, upload your own permitted test image; this uses the unchanged `yolov8s-oiv7` detector.
+
 ## Configuration
 
 - **Camera:** Set `CAMERA_RTSP_URL` in `backend/.env`. Camera credentials are not returned to the browser. **Scan Now** saves the current frame and its detections. Set `CAMERA_SAVE_INTERVAL=0` to disable automatic saves. By default, frames can be saved every 30 seconds when a detection exceeds `CAMERA_SAVE_CONFIDENCE`.
 - **Image storage:** If `S3_BUCKET` is empty, images are saved in `backend/uploads/`, which Git ignores. For S3/R2, fill in the example environment variables and provide a public image URL. `PUBLIC_API_URL` must match the backend origin configured in the frontend.
 - **Human review:** Saved results can be reviewed per detection or per image using a reviewer listed in `trusted_persons`. The frontend's demo mode is separate from real detection results.
-- **Model settings:** `backend/models/active.txt` sets the default model. `LIZARD_MODEL` or a valid local selection can override it; these should not point to archived models. The model-selection API remains available for compatibility. Local category preferences are not committed to Git.
+- **Model settings:** `backend/models/active.txt` sets the default model. `LIZARD_MODEL` or a valid local selection can override it; these should not point to archived models. The model-selection API remains available for compatibility. Local category preferences are not committed to Git. `DETECTRA_STATE_DIR` can place saved preferences in a separate writable directory; without it, local installations continue using `backend/models/`.
 - **Previous results:** Saved records may refer to older model versions. Viewing or reviewing these records does not require keeping the old model weights on the server.
 
 ## Tests
@@ -52,8 +138,10 @@ After installing the dependencies, run these commands from the project root:
 
 ```powershell
 $python = "$env:LOCALAPPDATA/Detectra/venv/Scripts/python.exe"
+& $python -m pip install -r backend/requirements-dev.txt
 $env:PYTHONPATH = (Resolve-Path backend).Path
 & $python -m unittest discover -s backend/tests
+& $python -m mypy --config-file backend/mypy.ini
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 npm --prefix frontend run build
@@ -65,9 +153,114 @@ For browser tests:
 cd frontend
 npx playwright install chromium webkit
 npm run test:e2e
+cd ..
 ```
 
 Playwright uses local test servers on ports 8101 and 3100 with simulated API responses. These tests do not write to the production database. They check uploads, API responses, results, human review, category selection, and Scan Now in desktop/mobile Chromium and WebKit. We still need field testing to check how the system behaves with a physical camera.
+
+The integration suite runs against real PostgreSQL and the bundled YOLO weights. Provide a separate local `detectra_test` database and a test role with `CREATEDB` permission, then run from the project root:
+
+```powershell
+createuser --host=127.0.0.1 --username=postgres --createdb --pwprompt detectra_test
+createdb --host=127.0.0.1 --username=postgres --owner=detectra_test detectra_test
+$env:DETECTRA_TEST_DATABASE_URL = 'postgresql://detectra_test:replace-me@127.0.0.1:5432/detectra_test'
+$env:PYTHONPATH = (Resolve-Path backend).Path
+& $python -m unittest discover -s backend/tests/integration -v
+```
+
+The suite creates randomly named test databases and removes only those databases afterward. Schema tests roll back each transaction; application tests commit to a disposable database so we can check persistence from a separate connection. They cover setup and sample data, real uploads and predictions, rejected files, storage cleanup after a failed transaction, feedback revisions, concurrent reviews, CRUD validation, and camera-frame scans. Application tests disable `.env` loading and physical cameras, replace storage with a temporary directory, and isolate model preferences. Missing or unsafe test configuration fails the suite rather than silently skipping it.
+
+For the complete browser workflow, keep the same test database configuration and run after building the frontend and installing Playwright browsers:
+
+```powershell
+& $python backend/tests/run_system.py
+```
+
+This runner starts FastAPI on port 8102 and Next.js on port 3101. Its five Chromium tests exercise real YOLO uploads, blank images, saved feedback after reload, species preferences, and Scan Now from a generated local video. No API responses or model predictions are mocked in this suite. The runner removes its temporary database, video, uploads, and preferences when it exits normally or a test fails. After an interrupted or force-killed run, inspect any remaining local `detectra_test_<random id>` database before removing it. Run the browser suites sequentially because they share Playwright's report directory.
+
+The positive fixture is the NASA astronaut image distributed by scikit-image; its source, public-domain attribution, and SHA-256 are recorded in `backend/tests/fixtures/provenance.json`. It checks the application workflow, not independent detector accuracy. Physical RTSP capture and field testing are still pending. On November 5, 2026, the configured camera did not respond to a TCP-only connection check; no real frames were captured or saved.
+
+Mypy checks the API and development database scripts, including unannotated function bodies. It is not a strict typing guarantee for every dependency: Ultralytics and Boto3 are excluded from dependency inspection because their integration does not provide usable type information. The offline evaluation script is covered by its unit tests, not this mypy configuration. Executed Phase III checks are recorded in `docs/phase-3-test-results.json`.
+
+## Docker
+
+Docker Compose runs Next.js, FastAPI with CPU-only YOLO, and a separate PostgreSQL 16 database. Install Docker with Compose v2 (on Windows, use Docker Desktop with Linux containers). From the project root:
+
+```powershell
+Copy-Item .env.compose.example .env.compose
+# Set DETECTRA_DB_PASSWORD in .env.compose to a password for this local database.
+docker compose --env-file .env.compose build
+docker compose --env-file .env.compose up -d --wait
+docker compose --env-file .env.compose run --rm seed
+```
+
+Open `http://localhost:3000` and use **Demo Reviewer** to save feedback. The same sample result links listed above work in Docker. To use another local port, change `DETECTRA_WEB_PORT` in `.env.compose` and recreate the frontend with `docker compose --env-file .env.compose up -d`. Build logs and downloaded dependencies may take several minutes on the first run; the backend image includes CPU PyTorch and the original `yolov8s-oiv7` weights. A GPU is not required. Later builds reuse dependency layers. Docker builds use Next.js standalone output; ordinary local builds keep the existing configuration.
+
+The frontend is published only on `127.0.0.1`. FastAPI and PostgreSQL have no published host ports. Next.js connects to `http://backend:8000` inside Docker and proxies image requests to the browser. These saved internal image URLs belong to the Compose installation; moving its database into a different topology requires updating those URLs deliberately. The applications run as non-root users with read-only code and model files. `.dockerignore` includes only the required sources and selected model, excluding `.env` files, local preferences, uploads, tests, and host dependencies. Database and camera settings are passed at runtime, not baked into either application image.
+
+PostgreSQL initializes the existing schema only when its named volume is empty. The seed is an explicit command, remains limited to the local database, and can be repeated without overwriting reviewed records. It shares the database container's network namespace to retain the loopback-only safeguard. Existing database volumes are never reset automatically. Changing the password in `.env.compose` does not change the password of an already initialized PostgreSQL role; use PostgreSQL's password-change procedure when keeping that database.
+
+Named volumes preserve the database, uploaded/sample images, detector preferences, and Next.js cache. To stop and recreate the containers while keeping these volumes:
+
+```powershell
+docker compose --env-file .env.compose down
+docker compose --env-file .env.compose up -d --wait
+```
+
+`down --volumes` deletes this Compose project's stored records, images and preferences; reserve it for disposable data. Keep the same Compose project name when reopening an existing installation so it uses the same volumes. To inspect a startup problem, run `docker compose --env-file .env.compose ps` and `docker compose --env-file .env.compose logs backend frontend db`. Health checks wait for PostgreSQL, then FastAPI, then the frontend proxy.
+
+No camera is opened by default. To use your own camera, set `DETECTRA_CAMERA_RTSP_URL` and optionally `DETECTRA_CAMERA_NAME` in the ignored `.env.compose` file, then recreate the backend. The Docker host must be able to reach the camera's private network. Automatic capture stays disabled while `DETECTRA_CAMERA_SAVE_INTERVAL=0`; Scan Now still saves the current frame. Physical RTSP capture remains untested. This local setup does not add authentication; keep it on localhost until access controls are implemented for a shared deployment.
+
+To validate the built images without touching an existing installation:
+
+```powershell
+docker compose --env-file .env.compose pull db
+& $python backend/tests/run_compose.py --report "$env:TEMP/detectra-docker-results.json"
+```
+
+The smoke test requires the backend development dependencies and creates a randomly named Compose project, its own password, an available loopback port, and new volumes. It forces the camera off even if the shell contains camera settings. It checks the HTTP flow through the built frontend and backend, real inference, corrupt-image rejection, feedback persistence, backend recovery, and preservation of data after container replacement. Its `finally` cleanup removes only that random test project's resources. After a force-killed test, inspect resources named `detectra_test_<random id>` before removing them. These HTTP checks complement the Playwright browser suites; they do not replace physical-camera testing.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on pull requests targeting `main`, pushes to `main`, and manual dispatch. One Ubuntu 24.04 job installs Python 3.13, Node.js 22, CPU-only PyTorch, the backend dependencies, and frontend dependencies from `package-lock.json`. It creates a PostgreSQL 16 service with disposable test credentials; repository secrets, Neon, S3, and physical cameras are not required.
+
+The job runs Python unit tests, mypy, PostgreSQL/inference integration tests, ESLint, TypeScript, the Next.js production build, and both Playwright suites. Chromium, WebKit, and OpenCV system dependencies are installed explicitly. Ultralytics automatic package installation is disabled in CI; its `pi-heif` fallback is included in our requirements so corrupted-image handling works without installing packages during a test. Browser suites run sequentially with one worker in CI to keep CPU and memory use manageable. Any failed command fails the job, including commands whose output is saved with `tee`.
+
+Test logs, installed dependency versions, the browser report, and retained failure traces are uploaded for seven days, including when a test fails. Dependency installation requires internet access. The actions are pinned to commit SHAs, the workflow token has read-only repository permissions, and checkout does not retain Git credentials. The Docker delivery job starts only after these application checks pass.
+
+Our GitHub-hosted [CI run for commit f291eaf](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/actions/runs/42127623491) passed on November 5, 2026. When we checked Actions on November 17, it was our newest run. Application checks and Docker delivery both succeeded: 47 Python unit tests, 22 integration tests, 109 browser regression tests, 5 system tests, and 8 Docker checks on both the source stack and the packaged Compose file. The delivery step verified 7 checksums and loaded the matching images. An earlier successful run covered commit 8d24056. The first hosted run reached its 30-minute limit while downloading Ubuntu browser dependencies; the workflow now uses the official Ubuntu mirrors instead of the slow Azure mirror. Local and hosted validation records are in `docs/phase-3-test-results.json`. No workflow has run on `main`.
+
+## Delivery
+
+The delivery job builds both application images with the checked-out commit recorded in their labels, pulls PostgreSQL, and runs the Docker smoke test. It then packages those exact tested image IDs, verifies and reloads the archive, and runs the smoke test again using the packaged Compose file with builds and pulls disabled. Pull requests validate the complete process. A successful push to `main`, or a manual workflow run on `main`, also uploads a downloadable `detectra-<commit>-linux-amd64-<attempt>` artifact for seven days.
+
+The bundle contains `images.tar.gz`, a Compose file without build instructions, the database schema, `.env.compose.example`, `START.txt`, a manifest with the revision and image IDs, the source smoke-test report, and `SHA256SUMS`. PostgreSQL is included unchanged under a versioned local tag, so starting a downloaded bundle does not require fetching images or rebuilding the source. Application images and the database image receive commit-specific tags; saved database records, uploads, preferences and real configuration files are not included.
+
+Download and extract the artifact from the GitHub Actions run, check its files against `SHA256SUMS`, and follow `START.txt`. In PowerShell, `Get-FileHash -Algorithm SHA256 images.tar.gz` prints the archive's checksum. From a repository checkout with the development dependencies installed, `python scripts/delivery.py verify --bundle <extracted-folder>` checks every listed file. Then, inside the extracted folder:
+
+```powershell
+docker load --input images.tar.gz
+Copy-Item .env.compose.example .env.compose
+# Set your local database password in .env.compose.
+docker compose --env-file .env.compose up -d --wait --no-build --pull never
+docker compose --env-file .env.compose run --rm seed
+```
+
+Open `http://localhost:3000`. This delivery currently targets Linux amd64 containers and local access. No GHCR publication, GitHub Release publication, public deployment or physical-camera capture is configured. In run 42127623491 we built, tested, packaged, reloaded, and retested the delivery. That run uploaded diagnostic logs only. The downloadable `detectra-<commit>-linux-amd64-<attempt>` archive is uploaded only from `main`, so we still need to merge and get a successful run on `main` before that archive is available.
+
+To reproduce packaging locally from a clean, committed checkout:
+
+```powershell
+$env:DETECTRA_REVISION = (git rev-parse HEAD).Trim()
+docker compose --env-file .env.compose build backend frontend
+docker compose --env-file .env.compose pull db
+& $python backend/tests/run_compose.py --report "$env:TEMP/detectra-source-smoke.json"
+& $python scripts/delivery.py package --output "$env:TEMP/detectra-delivery" --smoke-report "$env:TEMP/detectra-source-smoke.json"
+& $python scripts/delivery.py load --bundle "$env:TEMP/detectra-delivery"
+& $python backend/tests/run_compose.py --compose-file "$env:TEMP/detectra-delivery/compose.yaml" --report "$env:TEMP/detectra-bundle-smoke.json"
+```
+
+Choose a new output directory for each bundle; the packaging command refuses to overwrite an existing one. It also rejects a dirty working tree, mismatched revision labels, and image IDs that differ from the smoke report. For local development checks only, `--allow-dirty` creates a clearly marked development preview with `-dev` image tags. Before replacing an existing installation, back up its volumes, retain its `.env.compose`, and deliberately use the same Compose project name to keep its data. The included schema initializes empty databases; it is not an automatic migration system for future schema changes.
 
 ## Evaluating the detector
 
@@ -90,6 +283,20 @@ To reproduce the archived validation, use `--allow-partial-annotations`, with `-
 
 ## Repository contents
 
-The repository contains the application code, tests, example configuration, one model with its metadata and evaluation results, this README, and the Next.js development instructions. Private credentials, local preferences, uploaded images, Python environments, training data, and experiment files are excluded.
+The current tree contains the application code, tests, example configuration, one model with its metadata and evaluation results, this README, the Phase III report and test record, and the Next.js development instructions. Private credentials, local preferences, uploaded images, Python environments, training data, and experiment files are excluded.
+
+The frontend demo image and JPG/PNG/WebP fixtures are original synthetic shapes labeled as a demonstration. They test display and upload behavior, not detector accuracy. The earlier house photograph remains in Git history and matches the [entrance image in our Figma design](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=10-679). On November 5, we verified the visual match, the 1600 by 1067 dimensions, and the matching image hash. We are preserving the existing Git history.
+
+## Known limitations and submission status
+
+- Small lizards are often missed. The retained evaluation uses partly annotated validation images, not an independent final test set. Human feedback does not automatically retrain the model.
+- Physical RTSP validation is pending. The tested camera workflows use controlled fixtures; a real camera also requires private network access. The current live-camera manager reads one configured stream.
+- This is a controlled local prototype without authentication or account management. The reviewer list is not an access-control system. S3 mode currently requires publicly readable image URLs and has not been validated against a live bucket in Phase III; do not use it for private captures in a public deployment.
+- Email verification links, automated retraining, and analytics are not implemented. The dashboard is navigation, not an analytics dashboard.
+- Public hosting requires authentication, authorization for stored images and camera endpoints, HTTPS, and deployment-specific validation. The bundled local database and loopback-only frontend are the supported demonstration setup.
+
+The November 5, 2026 audit found no exposed live credentials in the scanned Git history. The historical Phase II PDF contains student contact emails, and Git retains normal author information; these are not credentials and are not scheduled for removal. Environment files and their local or production variants are ignored, while sanitized configuration examples remain tracked. The frontend dependency audit reports eight moderate findings in development tooling, all associated with the [minimatch advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249), and none in runtime dependencies. No forced dependency downgrade was applied. These results are a dated audit, not a guarantee that the project is free of vulnerabilities.
+
+We pushed the branch. Our hosted CI passed for `f291eaf`, and Evan approved [PR #3](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/3) on November 16, 2026. The pull request is mergeable and has no review comments. We have not merged it. Before submission, we still need to merge, wait for a successful Actions run on `main`, download the delivery artifact from that run, and decide on repository visibility. The repository remains private. We have not rewritten remote history or changed its visibility. History rewriting is not required to run or review the project.
 
 Our interface design reference is available in [Figma](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=8-2).

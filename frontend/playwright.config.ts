@@ -1,13 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
-  testDir: "./tests", fullyParallel: true, workers: 3,
+  testDir: "./tests", fullyParallel: true, workers: process.env.CI ? 1 : 3,
+  testIgnore: "**/system/**",
   reporter: [["list"], ["html", { open: "never" }]],
   use: { baseURL: "http://127.0.0.1:3100", trace: "retain-on-failure" },
   projects: [
     { name: "api-contract", testMatch: "proxy.spec.ts" },
-    { name: "desktop-chromium", testIgnore: "proxy.spec.ts", use: { ...devices["Desktop Chrome"], viewport: { width: 1470, height: 950 } } },
-    { name: "mobile-chromium", testIgnore: "proxy.spec.ts", use: { ...devices["Pixel 7"] } },
-    { name: "desktop-webkit", testIgnore: "proxy.spec.ts", use: { ...devices["Desktop Safari"] } },
+    { name: "desktop-chromium", testIgnore: ["proxy.spec.ts", "**/system/**"], use: { ...devices["Desktop Chrome"], viewport: { width: 1470, height: 950 } } },
+    { name: "mobile-chromium", testIgnore: ["proxy.spec.ts", "**/system/**"], use: { ...devices["Pixel 7"] } },
+    { name: "desktop-webkit", testIgnore: ["proxy.spec.ts", "**/system/**"], use: { ...devices["Desktop Safari"] } },
   ],
   webServer: [
     { command: "node tests/fixtures/backend-server.mjs", url: "http://127.0.0.1:8101/health", reuseExistingServer: false },

@@ -151,6 +151,11 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+# Keep sanitized configuration examples available to contributors.
+!.env.example
+!.env.compose.example
+backend/state/
 .envrc
 .venv
 env/

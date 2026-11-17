@@ -17,11 +17,15 @@ from .verification import lock_image, update_image_verification
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    pool.open(wait=True, timeout=30)
-    camera.start()
-    yield
-    camera.stop()
-    pool.close()
+    try:
+        pool.open(wait=True, timeout=30)
+        camera.start()
+        yield
+    finally:
+        try:
+            camera.stop()
+        finally:
+            pool.close()
 
 
 app = FastAPI(title="Detectra API", lifespan=lifespan)
@@ -99,6 +103,7 @@ def verify_image(image_id: UUID, body: s.ImageVerification, conn: Conn):
         "INSERT INTO human_verifications (verified_by_id, target_found) VALUES (%s, %s) RETURNING *",
         [body.verified_by_id, body.target_found],
     ).fetchone()
+    assert verification is not None  # INSERT ... RETURNING always returns the inserted row.
     vid = verification["verification_id"]
 
     if body.detection_ids is None:

@@ -1,0 +1,10 @@
+{
+  "astronaut.png": {
+    "description": "NASA portrait of Eileen Collins, distributed with scikit-image 0.25.2.",
+    "source": "https://raw.githubusercontent.com/scikit-image/scikit-image/v0.25.2/skimage/data/astronaut.png",
+    "license_reference": "https://scikit-image.org/docs/0.25.x/api/skimage.data.html#skimage.data.astronaut",
+    "rights": "Public domain, according to the scikit-image dataset documentation.",
+    "sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+    "purpose": "Positive person-detection workflow fixture. Not an accuracy benchmark or an independent validation set."
+  }
+}

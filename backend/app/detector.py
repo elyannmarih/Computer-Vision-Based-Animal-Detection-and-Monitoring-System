@@ -3,6 +3,7 @@
 The bundled model is selected by models/active.txt. Local configuration may
 override it; unavailable weights fail explicitly instead of producing fake results.
 Species preferences filter the supported classes without changing the weights.
+DETECTRA_STATE_DIR can store preferences separately from the bundled model files.
 """
 import json
 import logging
@@ -12,6 +13,7 @@ import threading
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from PIL import Image, ImageOps
@@ -23,9 +25,10 @@ log = logging.getLogger(__name__)
 TARGET_LABEL = "lizard"
 
 MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
-SELECTED_FILE = MODELS_DIR / "selected.txt"  # the model last picked in the app (not in git)
+STATE_DIR = Path(os.getenv("DETECTRA_STATE_DIR") or MODELS_DIR)
+SELECTED_FILE = STATE_DIR / "selected.txt"  # the model last picked in the app (not in git)
 CONFIDENCE = float(os.getenv("LIZARD_CONFIDENCE", "0.25"))
-CLASSES_FILE = MODELS_DIR / "selected-classes.json"
+CLASSES_FILE = STATE_DIR / "selected-classes.json"
 try:
     _selected_classes = json.loads(CLASSES_FILE.read_text()) if CLASSES_FILE.exists() else {}
     if not isinstance(_selected_classes, dict):
@@ -50,6 +53,7 @@ def select_classes(version: str, classes: list[str]):
         if len(set(classes)) != len(classes) or not set(classes).issubset(model.classes):
             raise ValueError("Choose supported classes without duplicates")
         updated = {**_selected_classes, version: sorted(classes)}
+        CLASSES_FILE.parent.mkdir(parents=True, exist_ok=True)
         temporary = CLASSES_FILE.with_suffix(".tmp")
         temporary.write_text(json.dumps(updated, indent=2) + "\n")
         temporary.replace(CLASSES_FILE)
@@ -103,7 +107,7 @@ def load_model(version: str) -> Model:
 
 
 _lock = threading.Lock()  # Ultralytics predictors aren't thread-safe; FastAPI runs requests in a thread pool
-_loaded = {}  # weights path -> YOLO, so switching back and forth doesn't reload
+_loaded: dict[Path, Any] = {}  # weights path -> YOLO, so switching back and forth doesn't reload
 
 
 def active() -> Model:
@@ -113,13 +117,14 @@ def active() -> Model:
 def use_model(version: str, remember: bool = False) -> Model:
     """Make `version` the model used by later `detect` calls (requests already running keep theirs).
 
-    remember=True also saves the choice in models/selected.txt, so it's used after a restart.
+    remember=True also saves the choice in STATE_DIR/selected.txt for the next restart.
     """
     global _active
     model = load_model(version)
     _yolo(model)  # load now so a bad weights file fails here, not on the next upload
     _active = model
     if remember:
+        SELECTED_FILE.parent.mkdir(parents=True, exist_ok=True)
         SELECTED_FILE.write_text(version + "\n")
     return model
 
@@ -145,6 +150,8 @@ def weights_path(path: Path) -> str:
 
 
 def _yolo(model: Model):
+    if model.weights is None:
+        raise ValueError("Detection requires real model weights")
     with _lock:
         if model.weights not in _loaded:
             from ultralytics import YOLO
@@ -220,6 +227,7 @@ def _read(path: Path) -> str | None:
 
 def _startup_model() -> Model:
     """LIZARD_MODEL, else the last model picked in the app (models/selected.txt), else models/active.txt."""
+    name: str | None
     if name := (os.getenv("LIZARD_MODEL") or "").strip():
         return load_model(name)  # a configured model that doesn't exist is an error, not fake detections
     if name := _read(SELECTED_FILE):
