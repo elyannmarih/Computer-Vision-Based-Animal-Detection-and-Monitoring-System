@@ -1,0 +1,59 @@
+---
+title: Figure 3. Final System Architecture
+config:
+  theme: base
+  look: classic
+  markdownAutoWrap: false
+  themeVariables:
+    fontFamily: Times New Roman, Times, serif
+    fontSize: 22px
+    primaryColor: '#F1F5FA'
+    primaryTextColor: '#202C3B'
+    primaryBorderColor: '#365F91'
+    lineColor: '#365F91'
+    secondaryColor: '#FFFFFF'
+    tertiaryColor: '#FFFFFF'
+    clusterBkg: '#FFFFFF'
+    clusterBorder: '#4F81BD'
+    titleColor: '#365F91'
+  flowchart:
+    htmlLabels: false
+    wrappingWidth: 380
+    curve: linear
+    nodeSpacing: 35
+    rankSpacing: 55
+---
+flowchart TB
+  accTitle: Final System Architecture
+  accDescr: Local client-server application. FastAPI contains modules, not separate microservices. S3 is optional and physical-camera acceptance is pending.
+  B["Browser / React<br/>Upload, results, box visibility<br/>Correct / Incorrect feedback"]
+  N["Next.js server<br/>Pages and /api/detectra/*<br/>Validate and map API responses<br/>Proxy images and MJPEG"]
+  R["External camera input<br/>One configured RTSP source<br/>Physical acceptance pending"]
+  subgraph F["FastAPI"]
+    A["Routes and workflow logic<br/>analysis.py · verification.py<br/>Analyze, persist, review"]
+    C["Camera manager · camera.py<br/>OpenCV capture and preview<br/>Scan Now / optional auto-save"]
+    Y["YOLO detector · detector.py<br/>yolov8s-oiv7<br/>Selected detection categories"]
+    S["Image storage · storage.py<br/>save / delete"]
+    D["Database access<br/>db.py / crud.py<br/>Psycopg connection pool"]
+    C -->|reuse analysis.record| A
+    C -->|infer captured frames| Y
+    A -->|inference calls| Y
+    A -->|image bytes| S
+    A -->|SQL and transactions| D
+  end
+  L[("Local image files<br/>Default: uploads/<br/>Images and raw frames")]
+  P[("PostgreSQL 16<br/>Images, detections, models<br/>Reviewers, reviews, cameras")]
+  O["Optional S3-compatible store<br/>Backend capability only<br/>Current Next.js adapter<br/>accepts local image URLs"]
+  B <-->|same-origin HTTP| N
+  N <-->|HTTP API / JSON results| A
+  R -->|RTSP frames| C
+  S -->|save / delete files| L
+  S -.->|optional storage path| O
+  D <-->|metadata and feedback| P
+  classDef optional fill:#FFFFFF,stroke:#4F81BD,stroke-dasharray:6 4,color:#202C3B;
+  classDef external fill:#FFFFFF,stroke:#4F81BD,color:#202C3B;
+  class O optional;
+  class R external;
+  %% Local Compose exposes only Next.js on the host loopback interface.
+  %% PostgreSQL stores image URLs; image bytes remain in file storage.
+  %% Automated camera tests use generated local video, not physical RTSP evidence.

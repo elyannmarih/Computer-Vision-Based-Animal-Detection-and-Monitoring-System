@@ -1,0 +1,53 @@
+---
+title: Figure 6. CI/CD Pipeline
+config:
+  theme: base
+  look: classic
+  markdownAutoWrap: false
+  themeVariables:
+    fontFamily: Times New Roman, Times, serif
+    fontSize: 22px
+    primaryColor: '#F1F5FA'
+    primaryTextColor: '#202C3B'
+    primaryBorderColor: '#365F91'
+    lineColor: '#365F91'
+    clusterBkg: '#FFFFFF'
+    clusterBorder: '#4F81BD'
+    titleColor: '#365F91'
+  flowchart:
+    htmlLabels: false
+    wrappingWidth: 380
+    curve: linear
+    nodeSpacing: 35
+    rankSpacing: 45
+---
+flowchart LR
+  accTitle: CI/CD Pipeline
+  accDescr: Application checks precede Docker delivery. The package is exported, verified, restored and tested. Publication is restricted to push or manual dispatch on main, with no public-cloud deployment.
+  T["Triggers<br/>PR targeting main<br/>Push to main<br/>workflow_dispatch"]
+  subgraph CI["Continuous integration — Application checks"]
+    direction TB
+    E["Ubuntu 24.04<br/>Python 3.13 · Node.js 22<br/>PostgreSQL 16 · CPU PyTorch<br/>Chromium and WebKit"]
+    PY["Python checks<br/>unittest → Mypy<br/>PostgreSQL / YOLO integration"]
+    FE["Frontend checks<br/>ESLint → TypeScript<br/>Production build"]
+    BT["Browser tests<br/>Regression: includes simulated APIs<br/>Full-system: real application stack"]
+    EV["Preserve test evidence<br/>Logs, versions and failure traces<br/>Upload when not cancelled"]
+    E --> PY --> FE --> BT --> EV
+  end
+  subgraph CD["Automated delivery — Docker delivery"]
+    direction TB
+    BUILD["Ubuntu 24.04<br/>Build backend and frontend<br/>Fetch PostgreSQL image<br/>Test source stack"]
+    PACK["Package tested images<br/>delivery.py package / docker save<br/>Compose, manifest and support files"]
+    LOAD["Verify and restore<br/>SHA256SUMS → docker load<br/>Match image IDs to manifest"]
+    TEST["Test restored stack<br/>Packaged Compose<br/>No rebuild / no pull"]
+    PUB["Publish delivery artifact<br/>Only push or manual dispatch on main<br/>Retention: 7 days"]
+    BUILD --> PACK --> LOAD --> TEST --> PUB
+  end
+  T --> CI
+  CI -->|needs: checks| CD
+  %% ci.yml cancels an earlier run for the same workflow and ref.
+  %% Delivery validation logs are also uploaded when not cancelled.
+  %% This is local Docker delivery, not public-cloud deployment.
+  %% Actionlint is documented separately; it is not a stage in ci.yml.
+  %% Run 44164413412: 47 unit, 22 integration, 109 regression, 5 full-system tests passed.
+  %% Delivery: 8 source-stack checks, 8 restored-stack checks, 7 checksums verified.

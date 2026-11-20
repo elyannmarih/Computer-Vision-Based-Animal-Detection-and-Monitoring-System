@@ -1,0 +1,72 @@
+---
+title: Figure 4. Image Analysis and Human Verification Sequence
+config:
+  theme: base
+  look: classic
+  markdownAutoWrap: false
+  themeVariables:
+    fontFamily: Times New Roman, Times, serif
+    fontSize: 20px
+    primaryColor: '#F1F5FA'
+    primaryTextColor: '#202C3B'
+    primaryBorderColor: '#365F91'
+    lineColor: '#365F91'
+    actorBkg: '#F1F5FA'
+    actorBorder: '#365F91'
+    actorTextColor: '#202C3B'
+    actorLineColor: '#4F81BD'
+    signalColor: '#365F91'
+    signalTextColor: '#202C3B'
+    noteBkgColor: '#F1F5FA'
+    noteBorderColor: '#4F81BD'
+    noteTextColor: '#202C3B'
+    labelBoxBkgColor: '#FFFFFF'
+    labelBoxBorderColor: '#365F91'
+    labelTextColor: '#365F91'
+    loopTextColor: '#202C3B'
+  themeCSS: ".actor-line {stroke-dasharray: 6 5;} .messageText {paint-order: stroke; stroke: white; stroke-width: 5px; stroke-linejoin: round;} .titleText {fill: #365F91;}"
+  sequence:
+    actorFontFamily: Times New Roman, Times, serif
+    actorFontSize: 20
+    messageFontFamily: Times New Roman, Times, serif
+    messageFontSize: 20
+    noteFontFamily: Times New Roman, Times, serif
+    noteFontSize: 20
+    mirrorActors: false
+    actorMargin: 35
+    messageMargin: 32
+    wrap: false
+---
+sequenceDiagram
+  accTitle: Image Analysis and Human Verification Sequence
+  accDescr: Ordered calls and returns for upload, real inference, storage, database persistence and human feedback. Notes distinguish API revision from the current UI.
+  participant B as Browser / React
+  participant N as Next.js API
+  participant A as FastAPI
+  participant Y as YOLO module
+  participant S as Image storage
+  participant D as PostgreSQL
+  Note over B,N: User selects image and Analyze image
+  B->>N: POST /api/detectra/analyze<br/>multipart image
+  N->>A: POST /analyze
+  Note over A,Y: Validate MIME, 10 MiB limit,<br/>and decodable image
+  A->>Y: detector.detect(data, model)
+  Y-->>A: Labels, confidence, boxes
+  A->>S: record(): storage.save(bytes)
+  S-->>A: Storage key and image URL
+  A->>D: model_id(), INSERT image / detections<br/>conn.commit()
+  D-->>A: Persisted records
+  A-->>N: 201 AnalysisResult
+  N-->>B: Validate / map to DetectionResult
+  Note over B,N: Show results, proxy image bytes<br/>through /api/detectra/images/*
+  Note over B,N: Select reviewer, reveal box,<br/>choose Correct or Incorrect
+  B->>N: POST /api/detectra/verify<br/>result, detection, reviewer, verdict
+  N->>A: POST /detections/{id}/verify
+  A->>D: Check parent, lock image and detection<br/>INSERT human_verifications<br/>Relink detection, update image totals
+  D-->>A: Review record, transaction commits<br/>on successful request
+  A-->>N: 201 HumanVerificationRead
+  N-->>B: Validated review ID, show saved verdict
+  Note over B,D: Reload reconstructs persisted feedback from records.
+  Note over B,D: Repeat verification API calls create a new review and replace its link.<br/>The current results UI has no revision button.
+  Note over A,D: No detections: POST /images/{image_id}/verify records an image-level verdict.<br/>Incorrect means a missed target, no detection row is invented.
+  Note over A,D: Invalid input is rejected. Known failed writes roll back and compensate stored files.<br/>An uncertain commit retains the file, unconfirmed feedback is not shown as saved.
