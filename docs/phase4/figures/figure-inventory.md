@@ -2,7 +2,7 @@
 
 Prepared on November 20, 2026. Source inspection and local execution used `main` at `4bb91fbb5d0576a4e5e9fb593ea61205673f66c1`. Historical CI evidence belongs to merge commit `693ca02fb22cc0c15f0d2f2983b79ce596d79a77`, not to the later figure commit.
 
-We reviewed the existing [Phase IV report](https://docs.google.com/document/d/1zmjnJn7Zm5gC_B7G-h7NqVVIq3L8u8iyc-V0IuEnToU/edit), including its figure locations and document styles. The document was not edited. Figures 3, 4, and 6 were reconstructed from source; their `.mmd` files are the editable Mermaid sources. SVG and PNG exports were generated directly from those sources with Mermaid CLI 12.2.0. They use Times New Roman, white backgrounds, and the requested blue palette. PNG exports preserve aspect ratio with a maximum dimension of 3200 pixels.
+We reviewed the existing [Phase IV report](https://docs.google.com/document/d/1zmjnJn7Zm5gC_B7G-h7NqVVIq3L8u8iyc-V0IuEnToU/edit), including its figure locations and document styles. The initial figure delivery left the document unchanged. Following authorization on November 20, the figures and explanatory results were incorporated into that report while preserving Phases I and II. Figures 3, 4, and 6 were reconstructed from source; their `.mmd` files are the editable Mermaid sources. SVG and PNG exports were generated directly from those sources with Mermaid CLI 12.2.0. They use Times New Roman, white backgrounds, and the requested blue palette. PNG exports preserve aspect ratio with a maximum dimension of 3200 pixels. Figure 4 was subsequently condensed to improve report-page legibility, grouping model and image-storage operations within the FastAPI participant without changing their order.
 
 All paths below are relative to the repository root. Figure links resolve within this directory.
 
@@ -25,6 +25,14 @@ All paths below are relative to the repository root. Figure links resolve within
 - **Interpretation and limits:** These are two qualitative false-negative examples, not a representative sample or a measured accuracy rate. The animal occupies a small area and lies in shadow; scale, contrast, image compression, and model coverage are possible influences, but the experiment does not isolate a cause. Two views of a similar scene are not independent evidence of general performance. When reloading an empty result, the UI says the model was not recorded because no detection-linked model record is available; the original analysis response identifies the actual model used. Physical RTSP operation remains untested.
 
 
+### Supplementary Figure 1d — Person Detection
+
+- **File/type:** [figure-01d-person-detection.jpg](figure-01d-person-detection.jpg), 1371 × 1271 px; authentic application screenshot.
+- **Input:** `backend/tests/fixtures/astronaut.png`, the public-domain NASA astronaut portrait distributed with [scikit-image 0.25.2](https://scikit-image.org/docs/0.25.x/api/skimage.data.html#skimage.data.astronaut). SHA-256: `88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5`.
+- **Method/result:** The same actual Next.js analysis route and unchanged `yolov8s-oiv7` model returned one `person` prediction, confidence `0.5337` (UI: 53.4%), `simulated=false`. The saved result was opened in the browser before this capture. Image `020e6dea-00fd-42be-870e-77e2037c6608`; detection `f294ad2a-fe94-4b80-8f8f-215d0602f329`.
+- **Verification:** A subsequent Correct verdict was submitted through the interface. Reload and PostgreSQL checks confirmed persisted review `d19fba9e-4f2f-4d90-99bb-45d10edcee29`, `human_verified=true`, one confirmed target, and unchanged confidence. The screenshot shows the pre-verification state.
+- **Limitations:** One person example demonstrates the broader category workflow, not overall person-detection accuracy. Category detection does not identify a person or authenticate a reviewer. These images were not used for training or tuning.
+
 ## Figure 2 — Human Verification Interface
 
 - **File/type:** [figure-02-human-verification.png](figure-02-human-verification.png); labeled composite of authentic application screenshot crops, 1016 × 515 px.
@@ -45,11 +53,11 @@ All paths below are relative to the repository root. Figure links resolve within
 
 ## Figure 4 — Image Analysis and Human Verification Sequence
 
-- **Files/type:** [PNG](figure-04-analysis-verification-sequence.png), 3200 × 2926 px; [Mermaid source](figure-04-analysis-verification-sequence.mmd); [SVG export](figure-04-analysis-verification-sequence.svg); UML-style sequence diagram.
+- **Files/type:** [PNG](figure-04-analysis-verification-sequence.png), 2507 × 3200 px; [Mermaid source](figure-04-analysis-verification-sequence.mmd); [SVG export](figure-04-analysis-verification-sequence.svg); UML-style sequence diagram.
 - **Sources:** `frontend/src/app/upload/page.tsx`, `frontend/src/app/api/detectra/analyze/route.ts`, `frontend/src/app/api/detectra/verify/route.ts`, `frontend/src/lib/backend-server.ts`, `frontend/src/lib/detection-service.ts`; `backend/app/analysis.py`, `detector.py`, `storage.py`, `verification.py`, `crud.py`, and `db.py`.
 - **Caption:** Ordered requests and returns for image validation, YOLO inference, file and database persistence, result display, and individual human verification. Notes describe empty results, repeat API verification, and failure handling.
 - **Verification:** Source tracing confirmed multipart upload, the 10 MiB limit, inference before `record()`, storage before database insertion, explicit analysis commit, response mapping, parent/detection locking, new review insertion, link replacement, aggregate updates, and reconstruction on reload. The browser participant includes user interaction; dashed arrows denote returns.
-- **Limitations:** The main sequence illustrates the implemented upload UI path, whereas Figure 1's capture used the HTTP submission described above. Exceptional paths are summarized in notes rather than expanded into additional lifelines. No-detection verification records an image-level verdict without inventing a detection. Known failed writes trigger rollback and file compensation; uncertain commits retain the file. Review revision is an API capability, not an exposed results-screen action.
+- **Limitations:** The main sequence illustrates the implemented upload UI path, whereas Figure 1's capture used the HTTP submission described above. Model and file-storage calls are grouped as ordered internal FastAPI operations; Figure 3 retains their separate module boundaries. Exceptional paths are summarized in notes rather than expanded into additional lifelines. No-detection verification records an image-level verdict without inventing a detection. Known failed writes trigger rollback and file compensation; uncertain commits retain the file. Review revision is an API capability, not an exposed results-screen action.
 
 ## Figure 5 — Automated Testing Evidence
 

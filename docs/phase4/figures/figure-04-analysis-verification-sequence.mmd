@@ -33,40 +33,32 @@ config:
     noteFontFamily: Times New Roman, Times, serif
     noteFontSize: 20
     mirrorActors: false
-    actorMargin: 35
-    messageMargin: 32
+    actorMargin: 20
+    messageMargin: 18
+    width: 110
+    height: 45
     wrap: false
 ---
 sequenceDiagram
   accTitle: Image Analysis and Human Verification Sequence
   accDescr: Ordered calls and returns for upload, real inference, storage, database persistence and human feedback. Notes distinguish API revision from the current UI.
-  participant B as Browser / React
-  participant N as Next.js API
-  participant A as FastAPI
-  participant Y as YOLO module
-  participant S as Image storage
+  participant B as Browser
+  participant N as Next.js
+  participant A as FastAPI modules
   participant D as PostgreSQL
-  Note over B,N: User selects image and Analyze image
-  B->>N: POST /api/detectra/analyze<br/>multipart image
+  B->>N: Submit image<br/>/api/detectra/analyze
   N->>A: POST /analyze
-  Note over A,Y: Validate MIME, 10 MiB limit,<br/>and decodable image
-  A->>Y: detector.detect(data, model)
-  Y-->>A: Labels, confidence, boxes
-  A->>S: record(): storage.save(bytes)
-  S-->>A: Storage key and image URL
-  A->>D: model_id(), INSERT image / detections<br/>conn.commit()
+  Note over A: Validate MIME, size, decode<br/>Run YOLO inference<br/>Save image file
+  A->>D: Insert model/image/detections<br/>Commit analysis
   D-->>A: Persisted records
-  A-->>N: 201 AnalysisResult
-  N-->>B: Validate / map to DetectionResult
-  Note over B,N: Show results, proxy image bytes<br/>through /api/detectra/images/*
-  Note over B,N: Select reviewer, reveal box,<br/>choose Correct or Incorrect
-  B->>N: POST /api/detectra/verify<br/>result, detection, reviewer, verdict
-  N->>A: POST /detections/{id}/verify
-  A->>D: Check parent, lock image and detection<br/>INSERT human_verifications<br/>Relink detection, update image totals
-  D-->>A: Review record, transaction commits<br/>on successful request
-  A-->>N: 201 HumanVerificationRead
-  N-->>B: Validated review ID, show saved verdict
-  Note over B,D: Reload reconstructs persisted feedback from records.
-  Note over B,D: Repeat verification API calls create a new review and replace its link.<br/>The current results UI has no revision button.
-  Note over A,D: No detections: POST /images/{image_id}/verify records an image-level verdict.<br/>Incorrect means a missed target, no detection row is invented.
-  Note over A,D: Invalid input is rejected. Known failed writes roll back and compensate stored files.<br/>An uncertain commit retains the file, unconfirmed feedback is not shown as saved.
+  A-->>N: 201 analysis result
+  N-->>B: Validate and map result<br/>Display labels, boxes, scores
+  B->>N: Submit reviewer and verdict<br/>/api/detectra/verify
+  N->>A: Verify detection
+  A->>D: Lock image and detection<br/>Insert review, relink detection<br/>Update image totals
+  D-->>A: Review record<br/>Commit on successful request
+  A-->>N: 201 saved review
+  N-->>B: Validate review ID<br/>Show saved verdict
+  Note over B,D: Reload restores saved feedback. Repeated API verification creates<br/>a new review and replaces its link. The UI has no revision button.
+  Note over B,D: An empty-result review attaches to the image. Incorrect means<br/>a missed target. It does not create a detection or bounding box.
+  Note over B,D: Invalid input is rejected. Known failed writes roll back and delete<br/>the saved file. An uncertain commit retains it. Unconfirmed reviews<br/>are not displayed as saved. Model and storage calls are grouped<br/>within FastAPI above. Figure 3 shows their separate modules.
