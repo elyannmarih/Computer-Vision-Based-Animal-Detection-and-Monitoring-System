@@ -2,7 +2,7 @@
 
 CIS 553: Software Engineering, Fall 2026  
 Elyann Soto and Evan Wilson  
-Status reviewed November 17, 2026. We merged PR #3 into `main` at `693ca02`. Physical-camera follow-up added for November 21; historical automated-test results are unchanged.
+Status reviewed November 17, 2026. We merged PR #3 into `main` at `693ca02`. Physical-camera follow-ups added for November 21–22; historical automated-test results are unchanged.
 
 ## 1. Project Overview
 
@@ -12,7 +12,7 @@ Detectra is a local web prototype for finding animals and people in uploaded ima
 
 The dashboard links to image upload, Camera Scan, results, settings, and usage instructions. Uploads use real YOLO inference. Results show boxes and confidence scores, allow individual boxes to be hidden, and retain human reviews in PostgreSQL. Images without detections can also receive a review. Selecting no species disables detection without changing the model weights.
 
-The camera backend supports one configured stream, live inference, on-demand capture, optional interval-based saving, and reconnection. Scan Now stores the frame and its metadata through the same analysis path as uploads. RTSP credentials stay in backend configuration and are removed from browser-facing status. Automated camera tests use a generated video or controlled frame fixtures. A separate November 21 physical-camera check verified live preview and manual Scan Now storage/reload with zero detections in a scene without visible targets; field detection accuracy and sustained operation remain unvalidated.
+The camera backend supports one configured stream, live inference, on-demand capture, optional interval-based saving, and reconnection. Scan Now stores the frame and its metadata through the same analysis path as uploads. RTSP credentials stay in backend configuration and are removed from browser-facing status. Automated camera tests use a generated video or controlled frame fixtures. A separate November 21 physical-camera check verified live preview and manual Scan Now storage/reload with zero detections in a scene without visible targets. On November 22, the camera detected a person at 51.1% confidence and saved the frame automatically (Figure 1e in the figure inventory). These examples do not establish overall field accuracy or sustained reliability.
 
 The local database scripts create the six application tables and insert fictional examples. Initialization rejects unrelated existing schemas and remote targets; repeating setup or seed does not reset records. Sample detections are visibly synthetic and are never presented as measured model performance.
 
@@ -26,7 +26,7 @@ The comparison uses the [Phase II report preserved at commit cf37ec6](https://gi
 | Cloudinary image storage | Local files by default, with optional S3-compatible storage; PostgreSQL retains metadata and reviews |
 | Controlled prototype without individual accounts | Still the supported scope; authentication remains required before public application hosting |
 | Human feedback for later evaluation | Feedback persists and can be corrected; it does not trigger retraining |
-| Camera scans and optional continuous monitoring | One configured stream supports live inference, Scan Now, and optional timed saves; physical preview and manual Scan Now save/reload passed on November 21; sustained monitoring remains unvalidated |
+| Camera scans and optional continuous monitoring | One configured stream supports live inference, Scan Now, and optional timed saves; physical preview and manual Scan Now save/reload passed on November 21; person detection and automatic saving were demonstrated on November 22; sustained monitoring remains unvalidated |
 | CI/CD and deployment scheduled later in November | We merged PR #3 on November 17, 2026. GitHub Actions run 44164413412 passed on `main` and published the Docker archive. Repository visibility remains a separate decision |
 
 Email verification links, multiple simultaneous live streams, analytics, automatic retraining, and RT-DETR comparison are not claimed as completed. The original interface layout was retained. The final audit replaced a demo photograph of unconfirmed origin with synthetic shapes without changing the UI structure.
@@ -64,7 +64,7 @@ The application suites ran locally on Windows and in the isolated Linux CI rehea
 
 ### Test case summary
 
-We summarized the major Phase II workflows that already have an automated test and that ran again on `main` in 44164413412. Browser rows that use a simulated API are marked. We left out physical RTSP capture, account management, live S3 storage, and automatic retraining because we have not run those checks.
+We summarized the major Phase II workflows that already have an automated test and that ran again on `main` in 44164413412. Browser rows that use a simulated API are marked. Physical RTSP capture, account management, live S3 storage, and automatic retraining were not part of that CI run. The separate physical-camera checks on November 21–22 are documented in the [figure inventory](phase4/figures/figure-inventory.md#supplementary-figure-1e--physical-camera-person-detection-and-automatic-save).
 
 | Test Case ID | Feature | Test Scenario | Expected Result | Actual Result | Test Type | Status |
 | --- | --- | --- | --- | --- | --- | --- |
