@@ -35,7 +35,7 @@ git clone https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-
 cd Computer-Vision-Based-Animal-Detection-and-Monitoring-System
 ```
 
-The repository is currently private, so cloning requires an authorized GitHub account. The Phase III implementation is on `main`. The Docker instructions below are an alternative to installing Python, Node.js, and PostgreSQL directly.
+The repository is public. The Phase III implementation is on `main`. The Docker instructions below are an alternative to installing Python, Node.js, and PostgreSQL directly.
 
 ## Detection model
 
@@ -234,6 +234,8 @@ Our GitHub-hosted [CI run on main](https://github.com/elyannmarih/Computer-Visio
 
 The delivery job builds both application images with the checked-out commit recorded in their labels, pulls PostgreSQL, and runs the Docker smoke test. It then packages those exact tested image IDs, verifies and reloads the archive, and runs the smoke test again using the packaged Compose file with builds and pulls disabled. Pull requests validate the complete process. A successful push to `main`, or a manual workflow run on `main`, also uploads a downloadable `detectra-<commit>-linux-amd64-<attempt>` artifact for seven days.
 
+For the December 1 presentation, the published `693ca02` release was downloaded on November 22 to the owner's local `downloads/release-693ca02-verified/` folder; all seven `SHA256SUMS` entries matched. This copy is excluded from Git and remains available locally after the original GitHub artifact expires on November 24.
+
 The bundle contains `images.tar.gz`, a Compose file without build instructions, the database schema, `.env.compose.example`, `START.txt`, a manifest with the revision and image IDs, the source smoke-test report, and `SHA256SUMS`. PostgreSQL is included unchanged under a versioned local tag, so starting a downloaded bundle does not require fetching images or rebuilding the source. Application images and the database image receive commit-specific tags; saved database records, uploads, preferences and real configuration files are not included.
 
 Download and extract the artifact from the GitHub Actions run, check its files against `SHA256SUMS`, and follow `START.txt`. In PowerShell, `Get-FileHash -Algorithm SHA256 images.tar.gz` prints the archive's checksum. From a repository checkout with the development dependencies installed, `python scripts/delivery.py verify --bundle <extracted-folder>` checks every listed file. Then, inside the extracted folder:
@@ -297,6 +299,6 @@ The frontend demo image and JPG/PNG/WebP fixtures are original synthetic shapes 
 
 The November 5, 2026 audit found no exposed live credentials in the scanned Git history. The historical Phase II PDF contains student contact emails, and Git retains normal author information; these are not credentials and are not scheduled for removal. Environment files and their local or production variants are ignored, while sanitized configuration examples remain tracked. The frontend dependency audit reports eight moderate findings in development tooling, all associated with the [minimatch advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249), and none in runtime dependencies. No forced dependency downgrade was applied. These results are a dated audit, not a guarantee that the project is free of vulnerabilities.
 
-We merged [PR #3](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/3) into `main` on November 17, 2026, at `693ca02`. Evan had approved it on November 16, 2026. Our hosted CI passed on `main` in run 44164413412 and published the delivery archive. Before submission, we still need to decide on repository visibility. The repository remains private. We have not rewritten remote history or changed its visibility. History rewriting is not required to run or review the project.
+We merged [PR #3](https://github.com/elyannmarih/Computer-Vision-Based-Animal-Detection-and-Monitoring-System/pull/3) into `main` on November 17, 2026, at `693ca02`. Evan had approved it on November 16, 2026. Our hosted CI passed on `main` in run 44164413412 and published the delivery archive. The repository is public as of the November 22 documentation update. Existing remote history is preserved. History rewriting is not required to run or review the project.
 
 Our interface design reference is available in [Figma](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=8-2).
