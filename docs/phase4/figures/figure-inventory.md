@@ -66,6 +66,22 @@ All paths below are relative to the repository root. Figure links resolve within
 - **Supported patterns:** Layered client–server organization; API adaptation and response validation in `backend-server.ts`; separation of inference, persistence, and workflow responsibilities; FastAPI dependency injection for database connections; and shared workflow composition through `analysis.record()` for uploads and camera saves. These do not establish formal Factory, Observer, or Singleton patterns.
 - **Limitations:** Default storage is local. Although `storage.py` supports S3, the current Next.js response adapter accepts backend-local image URLs, so S3 is not an end-to-end validated frontend integration. A single RTSP source is configurable. Physical preview and manual Scan Now storage/reload were verified on November 21 (Figure 1d); field accuracy and sustained operation remain unvalidated. Automated camera evidence uses generated local video. No public hosting or production authentication is implied.
 
+### Supplementary Figure 3a — Database Entity–Relationship Diagram
+
+- **Files/type:** [Editable Mermaid source](figure-03a-database-erd.mmd), [SVG](figure-03a-database-erd.svg), and [PNG](figure-03a-database-erd.png), 2145 × 3200 px. Exports are generated directly from the Mermaid source.
+- **Source:** [`backend/database/schema.sql`](../../../backend/database/schema.sql), with review-link behavior checked against `backend/app/analysis.py` and `backend/app/verification.py`.
+- **Scope:** Six implemented tables, selected fields, primary keys, foreign keys, and schema-enforced cardinalities. PK means primary key; FK means foreign key. A circle denotes zero, a bar denotes one, and a crow's foot denotes many. Dotted lines denote non-identifying relationships. Nullable references and the lack of UNIQUE constraints determine the optional and many sides; these are database constraints, not a claim that the UI reuses one review across unrelated results.
+- **Interpretation:** An image can have zero detections and no camera reference. Model and review links are nullable. `images.verification_id` stores the latest linked review, including reviews for empty results; each detection can link its own review. `trusted_persons` supplies reviewer records and does not implement authentication or trusted-person email delivery. `primary_account_id` has no foreign-key constraint; no account table is invented. Image bytes remain in storage outside PostgreSQL.
+- **Report placement:** Figure 3a follows the architecture figure in Section 5.2. Non-key fields are intentionally abbreviated; the schema remains the full specification.
+
+### Supplementary Figure 3b — User Flow Adapted from Figma
+
+- **Files/type:** [Editable Mermaid source](figure-03b-user-flow.mmd), [SVG](figure-03b-user-flow.svg), [PNG](figure-03b-user-flow.png), and the [unaltered original Figma export](figure-03b-user-flow-figma-original.png), 1800 × 3627 px.
+- **Design source:** [Detectra User Flow, frame 4:597](https://www.figma.com/design/CNNQIPpuNQoz283NL0pyGe/Detectra?node-id=4-597), on the User Flow page (0:1). The frame and its text were reviewed through Figma; no nodes were changed. The original export preserves the design's input branches, validation and camera errors, analysis, results, optional Correct/Incorrect verification, confirmation, and repeat/exit path.
+- **Adaptation:** The report uses a condensed Mermaid rendering for page legibility. The original Cloudinary step is replaced by the implemented local image storage, and lizard-only result labels are generalized to the selected categories. Reviewer selection and backend-confirmed feedback reflect the delivered application. File, camera, capture, and analysis error branches are summarized in the caption; feedback retry is shown. Individual boxes must be revealed before review; empty results use image-level feedback.
+- **Limits:** This is a manual user journey, not the optional automatic camera-saving loop. The reviewer selector is not authentication, and feedback does not retrain the detector. The figure is explicitly an adaptation, not an unmodified Figma screenshot or evidence of new tests.
+- **Report placement:** Figure 3b follows Figure 3a in Section 5.2, with links to both Mermaid sources and the original Figma flow. Existing figures and results are retained.
+
 ## Figure 4 — Image Analysis and Human Verification Sequence
 
 - **Files/type:** [PNG](figure-04-analysis-verification-sequence.png), 2507 × 3200 px; [Mermaid source](figure-04-analysis-verification-sequence.mmd); [SVG export](figure-04-analysis-verification-sequence.svg); UML-style sequence diagram.
@@ -115,3 +131,5 @@ mmdc -i figure-03-system-architecture.mmd -o figure-03-system-architecture.png -
 ```
 
 Repeat for `figure-04-analysis-verification-sequence` and `figure-06-cicd-pipeline`. Styling is included in each Mermaid file; no changes to application dependencies are required.
+
+Use the same commands for `figure-03a-database-erd` and `figure-03b-user-flow`. If Puppeteer's bundled browser is unavailable, pass `-p <browser-config.json>` with `executablePath` pointing to an installed Chrome/Chromium browser and `headless` set to `true`. The Figma-original PNG is an authentic export and is not generated from Mermaid.

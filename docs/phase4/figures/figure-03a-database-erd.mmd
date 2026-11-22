@@ -1,0 +1,74 @@
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: Times New Roman, Times, serif
+    fontSize: 22px
+    primaryColor: '#F1F5FA'
+    primaryTextColor: '#202C3B'
+    primaryBorderColor: '#365F91'
+    lineColor: '#365F91'
+    tertiaryColor: '#FFFFFF'
+  er:
+    diagramPadding: 16
+    entityPadding: 12
+    fontSize: 20
+    minEntityWidth: 140
+    minEntityHeight: 80
+---
+erDiagram
+    direction TB
+    accTitle: Detectra database relationships
+    accDescr: Six implemented PostgreSQL tables, selected fields, primary and foreign keys, and schema-enforced optionality. Reviewer records are stored in trusted_persons. Image-level and detection-level review links are nullable and not unique.
+
+    cameras |o..o{ images : supplies
+    images ||..o{ detections : contains
+    models |o..o{ detections : produces
+    trusted_persons ||..o{ human_verifications : submits
+    human_verifications |o..o{ images : image_review
+    human_verifications |o..o{ detections : detection_review
+
+    cameras {
+        uuid camera_id PK
+        varchar location_name
+        boolean enabled
+    }
+    images {
+        uuid image_id PK
+        uuid camera_id FK "nullable"
+        uuid verification_id FK "nullable"
+        text image_url
+        integer number_detections
+    }
+    detections {
+        uuid detection_id PK
+        uuid image_id FK
+        uuid model_id FK "nullable"
+        uuid verification_id FK "nullable"
+        varchar class_label
+        numeric confidence
+    }
+    models {
+        uuid model_id PK
+        varchar version_number
+    }
+    trusted_persons {
+        uuid trusted_person_id PK
+        varchar first_name
+        varchar last_name
+    }
+    human_verifications {
+        uuid verification_id PK
+        uuid verified_by_id FK
+        boolean target_found
+        timestamptz verified_at
+    }
+
+    %% Source: backend/database/schema.sql. Only selected fields are shown.
+    %% Dotted lines are non-identifying relationships: each child has its own PK.
+    %% Nullable FKs allow zero or one referenced parent; no FK is UNIQUE.
+    %% trusted_persons is the implemented reviewer table, not authentication.
+    %% primary_account_id has no FK; there is no implemented accounts table.
+    %% images.verification_id records the latest linked review, including
+    %% empty-result reviews; detections.verification_id links per-box verdicts.
+    %% Image bytes are stored outside PostgreSQL; image_url references storage.

@@ -1,0 +1,46 @@
+---
+config:
+  theme: base
+  look: classic
+  markdownAutoWrap: false
+  themeVariables:
+    fontFamily: Times New Roman, Times, serif
+    fontSize: 22px
+    primaryColor: '#F1F5FA'
+    primaryTextColor: '#202C3B'
+    primaryBorderColor: '#365F91'
+    lineColor: '#365F91'
+  flowchart:
+    htmlLabels: false
+    wrappingWidth: 420
+    curve: linear
+    nodeSpacing: 25
+    rankSpacing: 20
+    padding: 10
+---
+flowchart TB
+    accTitle: Detectra user flow adapted from the original Figma design
+    accDescr: Main manual journey through upload or camera Scan Now, analysis, saved results, optional review, and confirmed feedback. This adaptation reflects the implemented multiclass application and local image storage. Automatic camera saving is a separate optional background workflow.
+    I{"Input?"}
+    I -->|Image| U["Select a valid image<br/>Click Analyze Image"]
+    I -->|Camera| C["Open Camera Scan<br/>Connect camera · Click Scan Now"]
+    U --> A["Analyze and save results<br/>Show detections and confidence,<br/>or no detections"]
+    C --> A
+    A --> Q{"Review?"}
+    Q -->|Yes| F["Select reviewer · Review result<br/>Choose Correct or Incorrect"]
+    F --> S{"Saved?"}
+    S -->|Yes| P["Show saved feedback<br/>Retained after reload"]
+    S -->|No| E["Show feedback error<br/>Retry submission"]
+    E --> F
+    P --> N["Analyze or scan again,<br/>or return home"]
+    Q -->|Not now| N
+    N --> I
+
+    %% Original Figma: CNNQIPpuNQoz283NL0pyGe, page 0:1, frame 4:597.
+    %% This is a condensed adaptation, not an unmodified Figma export.
+    %% Original Cloudinary storage is replaced by implemented local storage.
+    %% Original lizard-only result labels are generalized to selected categories.
+    %% Input, connection, capture and analysis errors are summarized in the caption.
+    %% Feedback is saved only after backend confirmation, not merely on click.
+    %% Reviewer selection is not authentication and feedback does not retrain YOLO.
+    %% Automatic camera saving is optional and separate from this manual journey.
