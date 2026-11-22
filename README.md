@@ -156,7 +156,7 @@ npm run test:e2e
 cd ..
 ```
 
-Playwright uses local test servers on ports 8101 and 3100 with simulated API responses. These tests do not write to the production database. They check uploads, API responses, results, human review, category selection, and Scan Now in desktop/mobile Chromium and WebKit. We still need field testing to check how the system behaves with a physical camera.
+Playwright uses local test servers on ports 8101 and 3100 with simulated API responses. These tests do not write to the production database. They check uploads, API responses, results, human review, category selection, and Scan Now in desktop/mobile Chromium and WebKit. A separate physical-camera preview and Scan Now save/reload check passed on November 21, 2026; field detection accuracy and sustained operation still need validation.
 
 The integration suite runs against real PostgreSQL and the bundled YOLO weights. Provide a separate local `detectra_test` database and a test role with `CREATEDB` permission, then run from the project root:
 
@@ -178,7 +178,7 @@ For the complete browser workflow, keep the same test database configuration and
 
 This runner starts FastAPI on port 8102 and Next.js on port 3101. Its five Chromium tests exercise real YOLO uploads, blank images, saved feedback after reload, species preferences, and Scan Now from a generated local video. No API responses or model predictions are mocked in this suite. The runner removes its temporary database, video, uploads, and preferences when it exits normally or a test fails. After an interrupted or force-killed run, inspect any remaining local `detectra_test_<random id>` database before removing it. Run the browser suites sequentially because they share Playwright's report directory.
 
-The positive fixture is the NASA astronaut image distributed by scikit-image; its source, public-domain attribution, and SHA-256 are recorded in `backend/tests/fixtures/provenance.json`. It checks the application workflow, not independent detector accuracy. Physical RTSP capture and field testing are still pending. On November 5, 2026, the configured camera did not respond to a TCP-only connection check; no real frames were captured or saved.
+The positive fixture is the NASA astronaut image distributed by scikit-image; its source, public-domain attribution, and SHA-256 are recorded in `backend/tests/fixtures/provenance.json`. It checks the application workflow, not independent detector accuracy. On November 5, 2026, the configured camera did not respond to a TCP-only connection check; no real frames were captured or saved in that check. On November 21, physical RTSP preview and Scan Now capture, storage, and reload succeeded with zero detections in a scene without visible targets. See the [camera screenshot and test scope](docs/phase4/figures/figure-inventory.md#supplementary-figure-1d--physical-camera-scan-now). This does not establish field detection accuracy or sustained reliability.
 
 Mypy checks the API and development database scripts, including unannotated function bodies. It is not a strict typing guarantee for every dependency: Ultralytics and Boto3 are excluded from dependency inspection because their integration does not provide usable type information. The offline evaluation script is covered by its unit tests, not this mypy configuration. Executed Phase III checks are recorded in `docs/phase-3-test-results.json`.
 
@@ -209,7 +209,7 @@ docker compose --env-file .env.compose up -d --wait
 
 `down --volumes` deletes this Compose project's stored records, images and preferences; reserve it for disposable data. Keep the same Compose project name when reopening an existing installation so it uses the same volumes. To inspect a startup problem, run `docker compose --env-file .env.compose ps` and `docker compose --env-file .env.compose logs backend frontend db`. Health checks wait for PostgreSQL, then FastAPI, then the frontend proxy.
 
-No camera is opened by default. To use your own camera, set `DETECTRA_CAMERA_RTSP_URL` and optionally `DETECTRA_CAMERA_NAME` in the ignored `.env.compose` file, then recreate the backend. The Docker host must be able to reach the camera's private network. Automatic capture stays disabled while `DETECTRA_CAMERA_SAVE_INTERVAL=0`; Scan Now still saves the current frame. Physical RTSP capture remains untested. This local setup does not add authentication; keep it on localhost until access controls are implemented for a shared deployment.
+No camera is opened by default. To use your own camera, set `DETECTRA_CAMERA_RTSP_URL` and optionally `DETECTRA_CAMERA_NAME` in the ignored `.env.compose` file, then recreate the backend. The Docker host must be able to reach the camera's private network. Automatic capture stays disabled while `DETECTRA_CAMERA_SAVE_INTERVAL=0`; Scan Now still saves the current frame. Physical RTSP preview and a manual Scan Now save/reload check passed on November 21, 2026; automatic saving and prolonged operation were not validated. This local setup does not add authentication; keep it on localhost until access controls are implemented for a shared deployment.
 
 To validate the built images without touching an existing installation:
 
@@ -290,7 +290,7 @@ The frontend demo image and JPG/PNG/WebP fixtures are original synthetic shapes 
 ## Known limitations and submission status
 
 - Small lizards are often missed. The retained evaluation uses partly annotated validation images, not an independent final test set. Human feedback does not automatically retrain the model.
-- Physical RTSP validation is pending. The tested camera workflows use controlled fixtures; a real camera also requires private network access. The current live-camera manager reads one configured stream.
+- Physical RTSP preview and manual Scan Now storage/reload were verified on November 21, 2026, with zero detections in a scene without visible targets. Detection with people or animals, varied conditions, reconnection, and prolonged operation remain unvalidated. A real camera requires private network access; the live-camera manager reads one configured stream.
 - This is a controlled local prototype without authentication or account management. The reviewer list is not an access-control system. S3 mode currently requires publicly readable image URLs and has not been validated against a live bucket in Phase III; do not use it for private captures in a public deployment.
 - Email verification links, automated retraining, and analytics are not implemented. The dashboard is navigation, not an analytics dashboard.
 - Public hosting requires authentication, authorization for stored images and camera endpoints, HTTPS, and deployment-specific validation. The bundled local database and loopback-only frontend are the supported demonstration setup.

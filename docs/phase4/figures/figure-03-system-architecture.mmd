@@ -25,10 +25,10 @@ config:
 ---
 flowchart TB
   accTitle: Final System Architecture
-  accDescr: Local client-server application. FastAPI contains modules, not separate microservices. S3 is optional and physical-camera acceptance is pending.
+  accDescr: Local client-server application. FastAPI contains modules, not separate microservices. S3 is optional. Physical-camera preview and Scan Now were tested; field accuracy and sustained operation remain unvalidated.
   B["Browser / React<br/>Upload, results, box visibility<br/>Correct / Incorrect feedback"]
   N["Next.js server<br/>Pages and /api/detectra/*<br/>Validate and map API responses<br/>Proxy images and MJPEG"]
-  R["External camera input<br/>One configured RTSP source<br/>Physical acceptance pending"]
+  R["External camera input<br/>One configured RTSP source<br/>Physical Scan Now tested"]
   subgraph F["FastAPI"]
     A["Routes and workflow logic<br/>analysis.py · verification.py<br/>Analyze, persist, review"]
     C["Camera manager · camera.py<br/>OpenCV capture and preview<br/>Scan Now / optional auto-save"]

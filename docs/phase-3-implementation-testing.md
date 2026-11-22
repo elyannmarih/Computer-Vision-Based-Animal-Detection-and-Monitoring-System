@@ -2,7 +2,7 @@
 
 CIS 553: Software Engineering, Fall 2026  
 Elyann Soto and Evan Wilson  
-Status reviewed November 17, 2026. We merged PR #3 into `main` at `693ca02`.
+Status reviewed November 17, 2026. We merged PR #3 into `main` at `693ca02`. Physical-camera follow-up added for November 21; historical automated-test results are unchanged.
 
 ## 1. Project Overview
 
@@ -12,7 +12,7 @@ Detectra is a local web prototype for finding animals and people in uploaded ima
 
 The dashboard links to image upload, Camera Scan, results, settings, and usage instructions. Uploads use real YOLO inference. Results show boxes and confidence scores, allow individual boxes to be hidden, and retain human reviews in PostgreSQL. Images without detections can also receive a review. Selecting no species disables detection without changing the model weights.
 
-The camera backend supports one configured stream, live inference, on-demand capture, optional interval-based saving, and reconnection. Scan Now stores the frame and its metadata through the same analysis path as uploads. RTSP credentials stay in backend configuration and are removed from browser-facing status. Physical-camera operation still needs validation; automated camera tests use a generated video or controlled frame fixtures.
+The camera backend supports one configured stream, live inference, on-demand capture, optional interval-based saving, and reconnection. Scan Now stores the frame and its metadata through the same analysis path as uploads. RTSP credentials stay in backend configuration and are removed from browser-facing status. Automated camera tests use a generated video or controlled frame fixtures. A separate November 21 physical-camera check verified live preview and manual Scan Now storage/reload with zero detections in a scene without visible targets; field detection accuracy and sustained operation remain unvalidated.
 
 The local database scripts create the six application tables and insert fictional examples. Initialization rejects unrelated existing schemas and remote targets; repeating setup or seed does not reset records. Sample detections are visibly synthetic and are never presented as measured model performance.
 
@@ -26,7 +26,7 @@ The comparison uses the [Phase II report preserved at commit cf37ec6](https://gi
 | Cloudinary image storage | Local files by default, with optional S3-compatible storage; PostgreSQL retains metadata and reviews |
 | Controlled prototype without individual accounts | Still the supported scope; authentication remains required before public application hosting |
 | Human feedback for later evaluation | Feedback persists and can be corrected; it does not trigger retraining |
-| Camera scans and optional continuous monitoring | One configured stream supports live inference, Scan Now, and optional timed saves; physical validation is pending |
+| Camera scans and optional continuous monitoring | One configured stream supports live inference, Scan Now, and optional timed saves; physical preview and manual Scan Now save/reload passed on November 21; sustained monitoring remains unvalidated |
 | CI/CD and deployment scheduled later in November | We merged PR #3 on November 17, 2026. GitHub Actions run 44164413412 passed on `main` and published the Docker archive. Repository visibility remains a separate decision |
 
 Email verification links, multiple simultaneous live streams, analytics, automatic retraining, and RT-DETR comparison are not claimed as completed. The original interface layout was retained. The final audit replaced a demo photograph of unconfirmed origin with synthetic shapes without changing the UI structure.
@@ -139,4 +139,4 @@ Evan approved [PR #3](https://github.com/elyannmarih/Computer-Vision-Based-Anima
 
 ## 11. Conclusion
 
-Detectra has a working local application, reproducible database examples, recorded automated tests, and a container delivery archive published from `main`. We kept the original model and the recorded contributions. Evan approved PR #3 on November 16, 2026, and we merged it on November 17, 2026. Run 44164413412 passed on `main`. Physical-camera validation and the repository visibility decision remain open. We are keeping the existing development history.
+Detectra has a working local application, reproducible database examples, recorded automated tests, and a container delivery archive published from `main`. We kept the original model and the recorded contributions. Evan approved PR #3 on November 16, 2026, and we merged it on November 17, 2026. Run 44164413412 passed on `main`. The November 21 follow-up verified physical-camera preview and manual Scan Now storage/reload ([evidence and limits](phase4/figures/figure-inventory.md#supplementary-figure-1d--physical-camera-scan-now)). Field detection accuracy, sustained operation, and the repository visibility decision remain open. We are keeping the existing development history.
